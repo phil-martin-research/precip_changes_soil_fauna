@@ -221,32 +221,25 @@ M9<-rma.mv(yi,vi,mods = ~perc_annual_dist*Functional_group_size-1,random=~1|Site
 M10<-rma.mv(yi,vi,mods = ~perc_annual_dist*Functional_group_size+I(perc_annual_dist^2)*Functional_group_size-1,random=~1|Site_ID/Study_ID,data=env_ab)
 M11<-rma.mv(yi,vi,mods = ~perc_annual_dist*aridity+Functional_group_size,random=~1|Site_ID/Study_ID,data=env_ab)
 
+M10
+
 #check to see which model is the best fit
 AIC.rma(M0,M1,M2,M3,M4,M5,M6,M7,M8,M9,M10,M11)
 
 #copy and save the model formula
-newform<-(~perc_annual_dist*Functional_group_size+I(perc_annual_dist^2)*Functional_group_size-1)
-
-env_ab%>%
-  group_by(Functional_group_size)%>%
-  summarise(min_precip=min(perc_annual_dist),max_precip=max(perc_annual_dist))
+M10_formula<-(~perc_annual_dist*Functional_group_size+I(perc_annual_dist^2)*Functional_group_size-1)
 
 #create dataframe with new data for predictions
-
 new_data<-data.frame(expand.grid(perc_annual_dist = seq(-100,239,0.1),Functional_group_size=levels(as.factor(env_ab$Functional_group_size))))
 
 #create a model matrix and remove the intercept
-predgrid<-model.matrix(newform,data=new_data)
+predgrid<-model.matrix(M10_formula,data=new_data)
 
 #predict onto the new model matrix
-mypreds<-predict.rma(M10,newmods=predgrid)
+mypreds<-data.frame(predict.rma(M10,newmods=predgrid))
 
 #attach predictions to variables for plotting
-new_data$pred<-mypreds$pred
-new_data$ci.lb<-mypreds$ci.lb
-new_data$ci.ub<-mypreds$ci.ub
-new_data$pi.lb<-mypreds$pi.lb
-new_data$pi.ub<-mypreds$pi.ub
+new_data <- cbind(new_data, mypreds[c("pred", "ci.lb", "ci.ub", "pi.lb", "pi.ub")])
 
 #plot data for model
 #first subset to remove very large effect sizes
@@ -294,6 +287,9 @@ new_data_merge%>%
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_line(colour = "black"))
 ggsave("figures/abundance_precip_size.png",width = 18,height = 8,units = "cm",dpi = 300)
+ggsave("figures/abundance_precip_size_for_pres.png",width = 32,height = 12,units = "cm",dpi = 300)
+
+
 
 #look at how much data there is for different groups
 env_ab%>%group_by(Taxa_subclass)%>%
@@ -360,31 +356,49 @@ precip_resample<-terra::resample(mask_perc_change_crop,forest_40)
 #crop precipitation change data so that it only represents changes in forest areas
 forest_precip<-precip_resample*forest_40
 
+#turn this into a dataframe
+forest_precip_df<-as.data.frame(forest_precip,xy=TRUE)
 
-#create values over which we want to generate predictions
-perc_annual_dist<-values(europe_perc_change_forest)#percentage annual change in precipitation in European forests
+#subset the dataframe to just Europe to test model
+forest_precip_df_Spain<-subset(forest_precip_df,x>-10&x<30&y<80&y>36)
+forest_precip_df_Spain<-subset(forest_precip_df_Spain,!is.na(layer))
 
+ggplot(forest_precip_df_Spain,aes(x,y,fill=layer))+
+geom_tile()
 
+#make predictions for the map
+#copy and save the model formula
+newform<-(~perc_annual_dist*Functional_group_size+I(perc_annual_dist^2)*Functional_group_size-1)
 
-Functional_group_sizemacrofauna<-seq(0,0,length=length(perc_annual_dist))
-Functional_group_sizemesofauna<-seq(1,1,length=length(perc_annual_dist))
-Functional_group_sizemicrofauna<-seq(0,0,length=length(perc_annual_dist))
-perc_annual_dist2<-values(europe_perc_change_forest)^2
-perc_meso<-values(europe_perc_change_forest)*1
-perc_micro<-0
-perc2_meso<-1
-perc2_micro<-0
-newmods<-cbind(perc_annual_dist,
-               Functional_group_sizemacrofauna,Functional_group_sizemesofauna,Functional_group_sizemicrofauna,
-               perc_annual_dist2,perc_meso,perc_micro,perc2_meso,perc2_micro)
+#take values from map over which we want to generate predictions
+perc_annual_dist_raster<-forest_precip_df_Spain$layer
 
+#create dataframe with new data for predictions
+new_data_map<-data.frame(expand.grid(perc_annual_dist = perc_annual_dist_raster,Functional_group_size=levels(as.factor(env_ab$Functional_group_size))))
 
+#create a model matrix and remove the intercept
+predgrid_map<-model.matrix(newform,data=new_data_map)
 
+#predict onto the new model matrix
+mypreds_map<-predict.rma(M10,newmods=predgrid_map)
 
-model.matrix(M10)
+#attach predictions to variables for plotting
+new_data_map$pred<-mypreds_map$pred
+new_data_map$ci.lb<-mypreds_map$ci.lb
+new_data_map$ci.ub<-mypreds_map$ci.ub
+new_data_map$pi.lb<-mypreds_map$pi.lb
+new_data_map$pi.ub<-mypreds_map$pi.ub
 
-predict(M10,newmods=newmods)
+#attach latitude and longitude
+new_data_map$lat<-forest_precip_df_Spain$y
+new_data_map$long<-forest_precip_df_Spain$x
 
+ggplot(new_data_map,aes(long,lat,fill=(exp(pred)-1)*100))+
+  geom_tile()+
+  scale_fill_gradient2()+
+  facet_wrap(~Functional_group_size)
 
+ggplot(forest_precip_df,aes(x,y,fill=layer))+
+  geom_tile()
 
 
