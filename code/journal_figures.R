@@ -27,50 +27,79 @@ require(rgeos)
 require(sf)
 require(ggsn)
 require(ggspatial)
+library(readr)
 
 
-ALL_df <- read_excel("data/study_data_for_analysis_07_06.xlsx")
+#read in .csv file with soil fauna data
+soil_fauna_df<- read_csv("data/study_data_for_analysis_07_06.csv")
 
 #---------------------------------------------------
-#adapt dataset for analysis
+#format dataset for analysis
 #---------------------------------------------------
 
-#remove anomalies - outlying disturbance strengths 
-ALL_df$perc_annual_dist <- ifelse(ALL_df$perc_annual_dist<500, ALL_df$perc_annual_dist,  NA)
-ALL_df$perc_during_dist <- ifelse(ALL_df$perc_during_dist<500, ALL_df$perc_during_dist,  NA)
+#clean dataset
+soil_fauna_df <- soil_fauna_df %>%
+  mutate(
+    #remove disturbance strengths that represent >500% increases in precipitation
+    perc_annual_dist = if_else(perc_annual_dist < 500, perc_annual_dist, NA_real_),
+    perc_during_dist = if_else(perc_during_dist < 500, perc_during_dist, NA_real_),
+    #change all varainces that are 0 to NA
+    control_var = if_else(control_var !=0, control_var, NA_real_),
+    dist_var = if_else(dist_var !=0, dist_var, NA_real_),
+    #alter format of precipitation change to represent continuous change from increase to decrease
+    perc_annual_dist=if_else(perc_annual_dist>100, perc_annual_dist-100, perc_annual_dist*(-1)),
+    perc_during_dist=if_else(perc_during_dist>100, perc_during_dist-100, perc_during_dist*(-1)),
+    #convert SE to SD
+    control_SD=if_else(var_type=="SE", control_var*sqrt(control_n), control_var),
+    dist_SD=if_else(var_type=="SE",dist_var*sqrt(dist_n), dist_var)
+  )
 
-#change variances from 0 to NA
-ALL_df$control_var <- ifelse(ALL_df$control_var !=0, ALL_df$control_var,  NA)
-ALL_df$dist_var <- ifelse(ALL_df$dist_var !=0, ALL_df$dist_var, NA)
+#check to see if any of the means are equal to zero
+#control group
+soil_fauna_df%>%
+  group_by(control_av)%>%
+  summarise(length(control_av))
+#disturbance group
+soil_fauna_df%>%
+  group_by(disturbance_av)%>%
+  summarise(length(disturbance_av))
 
-# change percentage to be continuous from decrease to increase 
-ALL_df$perc_annual_dist <- ifelse(ALL_df$perc_annual_dist>100, ALL_df$perc_annual_dist-100, ALL_df$perc_annual_dist*(-1))
-ALL_df$perc_during_dist <- ifelse(ALL_df$perc_during_dist>100, ALL_df$perc_during_dist-100, ALL_df$perc_during_dist*(-1))
+#there are only 5 data points where control or disturbance mean are equal to 0
+#so we will exclude these
+soil_fauna_df<-soil_fauna_df%>%
+  filter(control_av>0&disturbance_av>0)
 
-#convert SE to SD
-ALL_df$control_SD<-ifelse(ALL_df$var_type=="SE", ALL_df$control_var*sqrt(ALL_df$control_n), ALL_df$control_var)
-ALL_df$dist_SD<-ifelse(ALL_df$var_type=="SE",ALL_df$dist_var*sqrt(ALL_df$dist_n), ALL_df$dist_var)
+#impute missing SD values based on the coefficient of variation
+#and missing sample sizes based on median sample sizes
+control_cv<-median(soil_fauna_df$control_SD/soil_fauna_df$control_av,na.rm = TRUE)
+disturbance_cv<-median(soil_fauna_df$dist_SD/soil_fauna_df$disturbance_av,na.rm = TRUE)
+med_control_n<-median(soil_fauna_df$control_n,na.rm = TRUE)
+med_dist_n<-median(soil_fauna_df$dist_n,na.rm = TRUE)
+
+soil_fauna_df<-soil_fauna_df%>%
+  mutate(control_SD=if_else(is.na(control_SD),control_cv*control_av,control_SD),
+         dist_SD=if_else(is.na(dist_SD),disturbance_cv*disturbance_av,dist_SD),
+         control_n=if_else(is.na(control_n),med_control_n,control_n),
+         dist_n=if_else(is.na(dist_n),med_dist_n,dist_n))
+
+#calculate log response ratio
+soil_fauna_rr<- escalc(m2i = control_av, m1i = disturbance_av, n2i = control_n, n1i = dist_n,
+                    sd2i = control_SD, sd1i = dist_SD,  measure = "ROM", data = soil_fauna_df)
+
 
 #---------------------------------------------------
 #1. data exploration and effect sizes
 #---------------------------------------------------
 
-#log response ratio
-ALL_df_rr <- escalc(m2i = control_av, m1i = disturbance_av, n2i = control_n, n1i = dist_n,
-                    sd2i = control_SD, sd1i = dist_SD,  measure = "ROM", data = ALL_df)
 
-#impute missing variances with median variance 
-ALL_df_rr$vi<-ifelse(is.na(ALL_df_rr$vi),median(ALL_df_rr$vi, na.rm = TRUE), ALL_df_rr $vi)
-
-#ensure complete data set with moderators of interest
-#THIS GETS RID OF A LOT OF DATA - SHOULD WE DO THIS OR NOT - IT IS WHAT WE USE TO CARRY OUT ANALYSIS 
-ALL_df_rr <- ALL_df_rr[complete.cases(ALL_df_rr[ , c("Functional_group_size","perc_during_dist","perc_annual_dist","time_after_dist_start", "yi")]),]
-
-#subset ALL_df_rr dataset to set variables of interest
+#subset dataset to set variables of interest
 #all abundance 
-all_ab_rr <- ALL_df_rr %>%filter(broad_outcome == 'abundance')
+fauna_ab<- soil_fauna_rr %>%filter(broad_outcome == 'abundance')
 #all diversity 
-all_div_rr <- ALL_df_rr %>%filter(broad_outcome == 'alpha diversity')
+fauina_div<- soil_fauna_rr %>%filter(broad_outcome == 'alpha diversity')
+
+####I don´t think we need the subset below this######
+
 #abundance and drought
 all_d_ab_rr <- ALL_df_rr %>%filter(broad_outcome == 'abundance')%>% filter(disturbance_type == 'drought') 
 #diversity and drought
@@ -82,13 +111,40 @@ all_p_div_rr <- ALL_df_rr %>%filter(broad_outcome == 'alpha diversity')%>%filter
 
 
 #remove cook outliers 
-all_ab_m0<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=all_ab_rr)
-cooks_a<- cooks.distance(all_ab_m0)
-all_ab <- all_ab_rr %>%cbind(cooks_a) %>%filter(cooks_a < 3.0*mean(cooks_a))
+
+#analysis of change in abundance
+fauna_ab_m0<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=fauna_ab)#null model
+fauna_ab_m1 <-rma.mv(yi,vi,mods = ~factor(disturbance_type)-1, random=~1|Site_ID/Study_ID,data=fauna_ab)#impact of drought vs increases
+
+#calculate cook distances
+cooks_ab_0<-cooks.distance(fauna_ab_m0)
+cooks_ab_1<-cooks.distance(fauna_ab_m1)
+#combine into one dataframe
+c_dists<-data.frame(cooks_ab_0,cooks_ab_1)
+#compare cook distances for different models
+ggplot(c_dists,aes(cooks_ab_0,cooks_ab_1))+
+  geom_point()+
+  scale_x_log10()+
+  scale_y_log10()
+
+#there are some cooks distances for model 1 that are much larger than for the null model
+#this means that we should filter out high cooks distances for model 1 and then rerun the model
+
+fauna_ab_filtered<- fauna_ab %>%cbind(cooks_ab_1) %>%filter(cooks_ab_1 < 3.0*mean(cooks_ab_1))
+
+#rerun analysis of impact of decreases vs decreases
+fauna_ab_m1_filtered<-rma.mv(yi,vi,mods = ~factor(disturbance_type)-1, 
+                             random=~1|Site_ID/Study_ID,data=fauna_ab_filtered)
+
+
+fauna_ab_filtered$disturbance_type
 
 all_div_m0<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=all_div_rr)
 cooks_b<- cooks.distance(all_div_m0)
 all_div <- all_div_rr %>%cbind(cooks_b) %>%filter(cooks_b < 3.0*mean(cooks_b))
+
+
+
 
 
 #---------------------------------------------------
@@ -96,7 +152,7 @@ all_div <- all_div_rr %>%cbind(cooks_b) %>%filter(cooks_b < 3.0*mean(cooks_b))
 #---------------------------------------------------
 
 #Figure 1
-all_ab_o1 <-rma.mv(yi,vi,mods = ~factor(disturbance_type)-1, random=~1|Site_ID/Study_ID,data=all_ab)
+
 all_div_o1 <-rma.mv(yi,vi,mods = ~factor(disturbance_type)-1, random=~1|Site_ID/Study_ID,data=all_div)
 c <- orchard_plot(all_ab_o1,  group ='Site_ID',mod = 'disturbance_type',
                   data = all_ab, xlab = "Abundance relative to undisturbed soil \nlog(Response ratio",
