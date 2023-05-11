@@ -28,13 +28,14 @@ require(sf)
 require(ggsn)
 require(ggspatial)
 library(readr)
+library(ggbeeswarm)
 
 
 #read in .csv file with soil fauna data
 soil_fauna_df<- read_csv("data/study_data_for_analysis_07_06.csv")
 
 #---------------------------------------------------
-#format dataset for analysis
+#1 - format dataset for analysis
 #---------------------------------------------------
 
 #clean dataset
@@ -86,35 +87,23 @@ soil_fauna_df<-soil_fauna_df%>%
 soil_fauna_rr<- escalc(m2i = control_av, m1i = disturbance_av, n2i = control_n, n1i = dist_n,
                     sd2i = control_SD, sd1i = dist_SD,  measure = "ROM", data = soil_fauna_df)
 
-
-#---------------------------------------------------
-#1. data exploration and effect sizes
-#---------------------------------------------------
-
-
-#subset dataset to set variables of interest
+#subset dataset to get variables of interest
 #all abundance 
 fauna_ab<- soil_fauna_rr %>%filter(broad_outcome == 'abundance')
 #all diversity 
-fauina_div<- soil_fauna_rr %>%filter(broad_outcome == 'alpha diversity')
-
-####I don´t think we need the subset below this######
-
-#abundance and drought
-all_d_ab_rr <- ALL_df_rr %>%filter(broad_outcome == 'abundance')%>% filter(disturbance_type == 'drought') 
-#diversity and drought
-all_d_div_rr <- ALL_df_rr %>%filter(broad_outcome == 'alpha diversity')%>%filter(disturbance_type == 'drought')
-#abundance and precip increases
-all_p_ab_rr <- ALL_df_rr %>%filter(broad_outcome == 'abundance')%>%filter(disturbance_type == 'precip_inc') 
-#diversity and precip increases
-all_p_div_rr <- ALL_df_rr %>%filter(broad_outcome == 'alpha diversity')%>%filter(disturbance_type == 'precip_inc')
+fauna_div<- soil_fauna_rr %>%filter(broad_outcome == 'alpha diversity')
 
 
-#remove cook outliers 
+#---------------------------------------------------
+#2. data analysis
+#---------------------------------------------------
 
-#analysis of change in abundance
+#################################
+#analysis of change in abundance#
+#################################
+
 fauna_ab_m0<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=fauna_ab)#null model
-fauna_ab_m1 <-rma.mv(yi,vi,mods = ~factor(disturbance_type)-1, random=~1|Site_ID/Study_ID,data=fauna_ab)#impact of drought vs increases
+fauna_ab_m1 <-rma.mv(yi,vi,mods = ~disturbance_type-1, random=~1|Site_ID/Study_ID,data=fauna_ab)#impact of drought vs increases
 
 #calculate cook distances
 cooks_ab_0<-cooks.distance(fauna_ab_m0)
@@ -129,34 +118,141 @@ ggplot(c_dists,aes(cooks_ab_0,cooks_ab_1))+
 
 #there are some cooks distances for model 1 that are much larger than for the null model
 #this means that we should filter out high cooks distances for model 1 and then rerun the model
-
-fauna_ab_filtered<- fauna_ab %>%cbind(cooks_ab_1) %>%filter(cooks_ab_1 < 3.0*mean(cooks_ab_1))
+fauna_ab_filtered<- fauna_ab %>%cbind(cooks_ab_1) %>%filter(cooks_ab_1 < 3.0*mean(cooks_ab_1,na.rm=TRUE))
+#this removed 8 comparisons
 
 #rerun analysis of impact of decreases vs decreases
-fauna_ab_m1_filtered<-rma.mv(yi,vi,mods = ~factor(disturbance_type)-1, 
+fauna_ab_m1_filtered<-rma.mv(yi,vi,mods = ~disturbance_type-1, 
                              random=~1|Site_ID/Study_ID,data=fauna_ab_filtered)
 
+#this shows a 48% reduction with precipitation decreases and a 49% increase for precipitation increasess
 
-fauna_ab_filtered$disturbance_type
+#run a test of publication bias here
+marginal_resid_ab<-data.frame(rstandard(fauna_ab_m1_filtered,type="marginal"))
+conditional_resid_ab<-data.frame(rstandard(fauna_ab_m1_filtered,type="conditional"))
 
-all_div_m0<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=all_div_rr)
-cooks_b<- cooks.distance(all_div_m0)
-all_div <- all_div_rr %>%cbind(cooks_b) %>%filter(cooks_b < 3.0*mean(cooks_b))
+ggplot(conditional_resid_ab,aes(resid,se))+
+  geom_point()+
+  scale_y_reverse()
 
+##########################################
+#analysis of changes in alpha diversity###
+##########################################
 
+fauna_div_m0<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=fauna_div)#null model
+fauna_div_m1 <-rma.mv(yi,vi,mods = ~factor(disturbance_type)-1, random=~1|Site_ID/Study_ID,data=fauna_div)#impact of drought vs increases
 
+#calculate cook distances
+cooks_div_0<-cooks.distance(fauna_div_m0)
+cooks_div_1<-cooks.distance(fauna_div_m1)
+#combine into one dataframe
+c_dists_div<-data.frame(cooks_div_0,cooks_div_1)
+#compare cook distances for different models
+ggplot(c_dists_div,aes(cooks_div_0,cooks_div_1))+
+  geom_point()+
+  scale_x_log10()+
+  scale_y_log10()+
+  geom_abline()
 
+#again there are some cooks distances for model 1 that are much larger than for the null model
+#this means that we should filter out high cooks distances for model 1 and then rerun the model
+fauna_div_filtered<- fauna_div %>%cbind(cooks_div_1) %>%filter(cooks_div_1 < 3.0*mean(cooks_div_1,na.rm=TRUE))
+#this removed 2 comparisons
+
+#rerun analysis of impact of decreases vs decreases
+fauna_div_m1_filtered<-rma.mv(yi,vi,mods = ~factor(disturbance_type)-1, 
+                             random=~1|Site_ID/Study_ID,data=fauna_div_filtered)
 
 #---------------------------------------------------
-#1. Plot figures 
+#2. Plot figures 
 #---------------------------------------------------
 
-#Figure 1
+#change in abundance
 
-all_div_o1 <-rma.mv(yi,vi,mods = ~factor(disturbance_type)-1, random=~1|Site_ID/Study_ID,data=all_div)
-c <- orchard_plot(all_ab_o1,  group ='Site_ID',mod = 'disturbance_type',
-                  data = all_ab, xlab = "Abundance relative to undisturbed soil \nlog(Response ratio",
-                  k = FALSE, g = FALSE)+
+#make my own version of the plots
+#bring together predictions from the different models
+abun_preds<-distinct(data.frame(predict(fauna_ab_m1_filtered)))
+div_preds<-distinct(data.frame(predict(fauna_div_m1_filtered)))
+comb_preds<-rbind(abun_preds,div_preds)
+comb_preds_2<-data.frame(disturbance=rep(c("Precipitation\nreduction","Precipitation\nincrease"),2),
+           outcome=rep(c("Abundance","Alpha diversity"),each=2),
+           comb_preds)
+
+#turn predictions into percentages
+comb_preds_2<-comb_preds_2%>%
+  mutate(perc_pred=(exp(pred)-1)*100,
+         per_ci.lb=(exp(ci.lb)-1)*100,
+         per_ci.ub=(exp(ci.ub)-1)*100,
+         per_pi.lb=(exp(pi.lb)-1)*100,
+         per_pi.ub=(exp(pi.ub)-1)*100)
+
+#organise data into one dataset
+fauna_ab_filtered<-fauna_ab_filtered%>%
+  select(-cooks_ab_1)
+fauna_div_filtered<-fauna_div_filtered%>%
+  select(-cooks_div_1)
+fauna_filtered<-rbind(fauna_ab_filtered,fauna_div_filtered)
+
+#relabel disturbance types
+fauna_filtered<-fauna_filtered%>%
+  mutate(disturbance=if_else(disturbance_type=="drought","Precipitation\nreduction","Precipitation\nincrease"),
+         outcome=if_else(broad_outcome=="abundance","Abundance","Alpha diversity"))
+
+fauna_filtered$broad_outcome
+
+#make my own orchard plot
+ggplot()+
+  geom_vline(xintercept = 0,lty=2,size=1)+
+  geom_quasirandom(data=fauna_filtered,aes(x=yi,y=disturbance,colour=outcome,group=outcome,size=1/vi),
+                   dodge.width = 1,alpha=0.5)+
+  geom_errorbarh(data=comb_preds_2,aes(y=disturbance,xmin=pi.lb,xmax=pi.ub,group=outcome),
+                 position=position_dodge(width=1),size=1.5,height=0,colour="black",alpha=0.5)+
+  geom_errorbarh(data=comb_preds_2,aes(xmin=ci.lb,xmax=ci.ub,y=disturbance,group=outcome),
+                 position=position_dodge(width=1),size=3,height=0,colour="black",alpha=0.5)+
+  geom_point(data=comb_preds_2,aes(x=pred,y=disturbance,colour=outcome,fill=outcome),
+             position=position_dodge(width=1),size=6,shape=21,colour="black")+
+  theme_cowplot()+
+  scale_fill_manual("Outcome type",values = c("#fde725","#1f9e89"))+
+  scale_color_manual("Outcome type",values = c("#fde725","#1f9e89"))+
+  scale_size_continuous(range = c(1,10))+
+  labs(y="Disturbance type",x="Soil and litter fauna relative to\nno disturbance (log response ratio)")+
+  guides(size = "none")+
+  theme(text=element_text(size=12),
+        axis.text=element_text(size=10))
+ggsave("figures/for_paper/abun_div_summary.png",width = 20,height = 14,units = "cm",dpi = 300)
+  
+
+#alternative facetted version of the figure
+ggplot()+
+  geom_vline(xintercept = 0,lty=2,size=1)+
+  geom_quasirandom(data=fauna_filtered,aes(x=yi,y=disturbance,colour=disturbance,group=outcome,size=1/vi),
+                   dodge.width = 1,alpha=0.5)+
+  geom_errorbarh(data=comb_preds_2,aes(y=disturbance,xmin=pi.lb,xmax=pi.ub),
+                 position=position_dodge(width=1),size=1.5,height=0,colour="black",alpha=0.8)+
+  geom_errorbarh(data=comb_preds_2,aes(xmin=ci.lb,xmax=ci.ub,y=disturbance),
+                 position=position_dodge(width=1),size=3,height=0,colour="black",alpha=0.8)+
+  geom_point(data=comb_preds_2,aes(x=pred,y=disturbance,colour=disturbance,fill=disturbance),
+             position=position_dodge(width=1),size=6,shape=21,colour="black")+
+  theme_cowplot()+
+  facet_wrap(~outcome,scales = "free_x")+
+  scale_fill_manual("Outcome type",values = c("#fde725","#1f9e89"))+
+  scale_color_manual("Outcome type",values = c("#fde725","#1f9e89"))+
+  scale_size_continuous(range = c(1,10))+
+  labs(y="Disturbance type",x="Soil and litter fauna relative to\nno disturbance (log response ratio)")+
+  guides(size = "none")+
+  theme(text=element_text(size=12),
+        axis.text=element_text(size=10),
+        legend.position = "bottom",
+        legend.justification = "centre")
+ggsave("figures/for_paper/abun_div_summary_facet.png",width = 20,height = 14,units = "cm",dpi = 300)
+
+
+
+
+
+orchard_plot(fauna_ab_m1_filtered,  group ='Site_ID',mod = 'disturbance_type',
+                  data = fauna_ab_filtered, xlab = "Abundance relative to undisturbed soil \nlog(Response ratio)",
+                  k = TRUE, g = FALSE)+
   ggtitle('Abundance')+
   theme_cowplot()+
   scale_fill_manual(values = c("#fde725","#1f9e89"))+
