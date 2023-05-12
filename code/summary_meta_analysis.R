@@ -7,6 +7,7 @@ library(cowplot)
 library(metafor)
 library(orchaRd)
 library(ggbeeswarm)
+library(tidyr)
 
 
 #read in .csv file with soil fauna data
@@ -48,6 +49,9 @@ soil_fauna_df%>%
 soil_fauna_df<-soil_fauna_df%>%
   filter(control_av>0&disturbance_av>0)
 
+#extract year of study
+soil_fauna_df$study_year<-parse_number(soil_fauna_df$Study_ID,trim_ws = TRUE)
+
 #impute missing SD values based on the coefficient of variation
 #and missing sample sizes based on median sample sizes
 control_cv<-median(soil_fauna_df$control_SD/soil_fauna_df$control_av,na.rm = TRUE)
@@ -71,9 +75,56 @@ fauna_ab<- soil_fauna_rr %>%filter(broad_outcome == 'abundance')
 #all diversity 
 fauna_div<- soil_fauna_rr %>%filter(broad_outcome == 'alpha diversity')
 
+######################################################
+#2 - test of publication bias#########################
+######################################################
+
+#subset to give only studies of each precipitiation change and outcome combination
+fauna_ab_red<-fauna_ab %>%filter(disturbance_type == 'drought')
+fauna_ab_inc<-fauna_ab %>%filter(disturbance_type == 'precip_inc')
+fauna_div_red<-fauna_div %>%filter(disturbance_type == 'drought')
+fauna_div_inc<-fauna_div %>%filter(disturbance_type == 'precip_inc')
+
+#precipitation reduction and abundance
+par(mfrow = c(4, 2))
+funnel(fauna_ab_red$yi, fauna_ab_red$vi, yaxis="sei",
+       #xlim = c(-3, 3),
+       xlab = "Effect size (lnRR)", digits = 2, las = 1) 
+funnel(fauna_ab_red$yi, fauna_ab_red$vi, yaxis="seinv",
+       #xlim = c(-3, 3),
+       xlab = "Effect size (lnRR)",  digits = 2, las = 1) 
+#there seems to be a slight bias towards more negative effects
+
+#precipitation reduction and diversity
+funnel(fauna_ab_inc$yi, fauna_ab_inc$vi, yaxis="sei",
+       #xlim = c(-3, 3),
+       xlab = "Effect size (lnRR)", digits = 2, las = 1) 
+funnel(fauna_ab_inc$yi, fauna_ab_inc$vi, yaxis="seinv",
+       #xlim = c(-3, 3),
+       xlab = "Effect size (lnRR)",  digits = 2, las = 1) 
+#again a slight bias towards more negative effects
+
+#precipitation increases and abundance
+funnel(fauna_ab_red$yi, fauna_ab_red$vi, yaxis="sei",
+       #xlim = c(-3, 3),
+       xlab = "Effect size (lnRR)", digits = 2, las = 1) 
+funnel(fauna_ab_red$yi, fauna_ab_red$vi, yaxis="seinv",
+       #xlim = c(-3, 3),
+       xlab = "Effect size (lnRR)",  digits = 2, las = 1) 
+#less bias obvious here
+
+#precipitation increase and diversity
+funnel(fauna_div_inc$yi, fauna_div_inc$vi, yaxis="sei",
+       #xlim = c(-3, 3),
+       xlab = "Effect size (lnRR)", digits = 2, las = 1) 
+funnel(fauna_div_inc$yi, fauna_div_inc$vi, yaxis="seinv",
+       #xlim = c(-3, 3),
+       xlab = "Effect size (lnRR)",  digits = 2, las = 1) 
+#little evidence of bias
+
 
 #---------------------------------------------------
-#2. data analysis
+#3. data analysis
 #---------------------------------------------------
 
 #################################
@@ -103,15 +154,82 @@ fauna_ab_filtered<- fauna_ab %>%cbind(cooks_ab_1) %>%filter(cooks_ab_1 < 3.0*mea
 fauna_ab_m1_filtered<-rma.mv(yi,vi,mods = ~disturbance_type-1, 
                              random=~1|Site_ID/Study_ID,data=fauna_ab_filtered)
 
-#this shows a 48% reduction with precipitation decreases and a 49% increase for precipitation increasess
+#this shows a 48% reduction with precipitation decreases and a 49% increase for precipitation increases
 
-#run a test of publication bias here
-marginal_resid_ab<-data.frame(rstandard(fauna_ab_m1_filtered,type="marginal"))
-conditional_resid_ab<-data.frame(rstandard(fauna_ab_m1_filtered,type="conditional"))
+###########################################################
+#tests of publication bias for abundance###################
+###########################################################
 
-ggplot(conditional_resid_ab,aes(resid,se))+
-  geom_point()+
-  scale_y_reverse()
+#this section tests for publication bias following the recommendations of Nakagawa et al (2021) https://doi.org/10.1111/2041-210X.13724
+
+#1 - precipitation reductions
+
+#create a variable for the standard error of each effect size
+fauna_ab_red$sei <- sqrt(fauna_ab_red$vi)
+
+#run a meta-analytical model of impacts of preciptation reduction
+fauna_ab_m0_reduction<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=fauna_ab_red)
+
+#produce a funnel plot
+par(mfrow=c(1,1))
+funnel(fauna_ab_red$yi,
+       fauna_ab_red$vi,
+       yaxis="seinv",
+       ylab="Precision (1/SE)",
+       xlab = "Effect size (lnRR)")
+#this generally looks fine, although there is some bias towards negative values
+
+#calculate effective sample size 
+fauna_ab_red$e_n<-with(fauna_ab_red,(4*(control_n*dist_n)) / (control_n + dist_n))
+#plot funnel plot with effective sample size
+funnel(fauna_ab_red$yi, fauna_ab_red$vi, ni = fauna_ab_red$e_n, yaxis="ni",
+       #xlim = c(-3, 3),
+       ylab = "Effective sample size",
+       xlab = "Effect size (lnRR)") 
+
+
+
+#use multilevel models to examine publication biases
+
+#meta-regression with SE
+abundance_red_se_bias_model<-rma.mv(yi,vi,mods = ~1+sei, 
+                                random=~1|Site_ID/Study_ID,
+                                data=fauna_ab_red,
+                                method="REML",
+                                test="t")
+#this indicates that there is little evidence of small-study effects
+
+#meta-regression with year of publication
+
+# mean-centering year of publication to help with interpretation
+fauna_ab_red$year.c <- as.vector(scale(fauna_ab_red$study_year, scale = F))
+
+#meta-regression of effect of publication year
+abundance_red_year_bias_model<-rma.mv(yi,vi,mods = ~1+year.c, 
+                                random=~1|Site_ID/Study_ID,
+                                data=fauna_ab_red,
+                                method="REML",
+                                test="t")
+
+
+ggplot(fauna_ab_red,aes(year.c,yi,size=1/vi))+
+  geom_point(alpha=0.3)+
+  theme_cowplot()
+#some indication that effect sizes increase over time
+
+
+#run an all-in publication bias test
+abundance_red_all_in_bias_model<-rma.mv(yi,vi,
+                                        mods = ~sei+
+                                                year.c+
+                                                perc_annual_dist-1, 
+                                      random=~1|Site_ID/Study_ID,
+                                      data=fauna_ab_red,
+                                      method="REML",
+                                      test="t")
+
+
+
 
 ##########################################
 #analysis of changes in alpha diversity###
@@ -143,7 +261,7 @@ fauna_div_m1_filtered<-rma.mv(yi,vi,mods = ~factor(disturbance_type)-1,
 #this shows a 9% reduction with precipitation decreases and a 12% increase for precipitation increasess
 
 #---------------------------------------------------
-#2. Plot figures 
+#3. Plot figures 
 #---------------------------------------------------
 
 #change in abundance
@@ -261,9 +379,6 @@ orchard_div_plot<-orchard_plot(fauna_div_m1_filtered,  group ='Site_ID',mod = 'd
 #combine into one figure
 combined_orchard_plots<-plot_grid(orchard_abun_plot,orchard_div_plot,labels = c("(a)","(b)"))
 save_plot("figures/for_paper/combined_orchard_plots.png",combined_orchard_plots,base_height = 12,base_width = 20,units="cm")
-
-
-
 
 
 #Figure 2. Diversity magnitude 
