@@ -66,6 +66,16 @@ soil_fauna_df<-soil_fauna_df%>%
 soil_fauna_rr<- escalc(m2i = control_av, m1i = disturbance_av, n2i = control_n, n1i = dist_n,
                        sd2i = control_SD, sd1i = dist_SD,  measure = "ROM", data = soil_fauna_df)
 
+#add variable for the standard error of each effect size for publication bias analysis
+soil_fauna_rr$sei <- sqrt(soil_fauna_rr$vi)
+
+#calculate effective sample size for publication bias analysis
+soil_fauna_rr$e_n<-with(soil_fauna_rr,(4*(control_n*dist_n)) / (control_n + dist_n))
+
+#calculate the inverse of the "effective sample size" to account for unbalanced sampling for publication bias analysis
+soil_fauna_rr$inv_n_tilda <-  with(soil_fauna_rr, (control_n + dist_n)/(control_n*dist_n))
+soil_fauna_rr$sqrt_inv_n_tilda <-  with(soil_fauna_rr, sqrt(inv_n_tilda))
+
 #subset dataset to get variables of interest
 # All abundance 
 fauna_ab <- filter(soil_fauna_rr, broad_outcome == 'abundance')
@@ -81,5 +91,6 @@ fauna_div_inc <- filter(fauna_div, disturbance_type == 'precip_inc')
 write.csv(fauna_ab, "data/abundance_data.csv")
 write.csv(fauna_div, "data/diversity_data.csv")
 write.csv(fauna_ab_red, "data/abundance_red_data.csv")
+write.csv(fauna_ab_inc, "data/abundance_inc_data.csv")
 write.csv(fauna_div_red, "data/diversity_red_data.csv")
 write.csv(fauna_div_inc, "data/diversity_inc_data.csv")

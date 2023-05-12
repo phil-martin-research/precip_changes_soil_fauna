@@ -21,48 +21,27 @@ diversity_inc<- read_csv("data/diversity_inc_data.csv")
 #1 - tests of publication bias for abundance under precipitation reduction###################
 #############################################################################################
 
-
 #produce a funnel plot
 par(mfrow=c(1,1))
-funnel(fauna_ab_red$yi,
-       fauna_ab_red$vi,
+funnel(abundance_red$yi,
+       abundance_red$vi,
        yaxis="seinv",
        ylab="Precision (1/SE)",
        xlab = "Effect size (lnRR)")
 #this generally looks fine, although there is some bias towards negative values
 
-#calculate effective sample size 
-fauna_ab_red$e_n<-with(fauna_ab_red,(4*(control_n*dist_n)) / (control_n + dist_n))
 #plot funnel plot with effective sample size
-funnel(fauna_ab_red$yi, fauna_ab_red$vi, ni = fauna_ab_red$e_n, yaxis="ni",
+funnel(abundance_red$yi, abundance_red$vi, ni = abundance_red$e_n, yaxis="ni",
        ylab = "Effective sample size",
        xlab = "Effect size (lnRR)") 
-#this does't look too bad
+#this doesn't look too bad
 
-
-#use multilevel models to examine publication biases
+#multilevel models to examine publication biases
 
 # create a unit-level random effect to model residual variance in metafor
-fauna_ab_red$obsID <- 1:nrow(fauna_ab_red)
+abundance_red$obsID <- 1:nrow(abundance_red)
 
-#run an intercept-only model of impacts of precipitation reduction
-fauna_ab_m0_reduction<-rma.mv(yi,vi,
-                              random=list(~1|Site_ID/Study_ID,
-                                          ~1|obsID),
-                              method="REML",
-                              test="t",
-                              data=fauna_ab_red)
-
-###############################################
-#meta-regression with effective sampling size##
-###############################################
-
-#calculating the inverse of the "effective sample size" to account for unbalanced sampling
-
-fauna_ab_red$inv_n_tilda <-  with(fauna_ab_red, (control_n + dist_n)/(control_n*dist_n))
-fauna_ab_red$sqrt_inv_n_tilda <-  with(fauna_ab_red, sqrt(inv_n_tilda))
-
-# Application of Equation 27 Nakagawa et al
+#meta-regression with effective sampling size using Equation 27 Nakagawa et al
 
 fauna_ab_reduction_srin<-rma.mv(yi,vi,
                                 mods=~1+sqrt_inv_n_tilda,
@@ -70,28 +49,21 @@ fauna_ab_reduction_srin<-rma.mv(yi,vi,
                                             ~1|obsID),
                                 method="REML",
                                 test="t",
-                                data=fauna_ab_red)
+                                data=abundance_red)
 #there is little evidence of a small-study effect, i.e. that effect sizes with larger uncertainty tend to be larger
 
-###############################################
-#meta-regression with year of publication######
-###############################################
+#meta-regression with year of publication
 
 # mean-centering year of publication to help with interpretation
-fauna_ab_red$year.c <- as.vector(scale(fauna_ab_red$study_year, scale = F))
+abundance_red$year.c <- as.vector(scale(abundance_red$study_year, scale = F))
 
 #meta-regression of effect of publication year
 abundance_red_year_bias_model<-rma.mv(yi,vi,mods = ~1+year.c, 
                                       random=list(~1|Site_ID/Study_ID,
                                                   ~1|obsID),
-                                      data=fauna_ab_red,
+                                      data=abundance_red,
                                       method="REML",
                                       test="t")
-
-
-ggplot(fauna_ab_red,aes(year.c,yi,size=1/vi))+
-  geom_point(alpha=0.3)+
-  theme_cowplot()
 #some indication that effect sizes increase over time
 
 
@@ -101,25 +73,89 @@ abundance_red_all_in_bias_model<-rma.mv(yi,vi,
                                           sqrt_inv_n_tilda+
                                           year.c+
                                           perc_annual_dist, 
-                                        random=list(~1|Site_ID/Study_ID,
+                                          random=list(~1|Site_ID/Study_ID,
                                                     ~1|obsID),
-                                        data=fauna_ab_red,
-                                        method="REML",
-                                        test="t")
+                                          data=abundance_red,
+                                          method="REML",
+                                          test="t")
 #a slight suggestion a small-study effect
 
 #plot this result
 preds_abundance_red_all_in_bias_model<-data.frame(predict(abundance_red_all_in_bias_model,
-                                                          newmods=cbind(seq(min(fauna_ab_red$sqrt_inv_n_tilda),
-                                                                            max(fauna_ab_red$sqrt_inv_n_tilda),
+                                                          newmods=cbind(seq(min(abundance_red$sqrt_inv_n_tilda),
+                                                                            max(abundance_red$sqrt_inv_n_tilda),
                                                                             length.out=142),
                                                                         c(0),c(0)),addx=TRUE))
 
 ggplot(preds_abundance_red_all_in_bias_model,aes(X.sqrt_inv_n_tilda,pred,ymin=ci.lb,ymax=ci.ub))+
   geom_line()+
   geom_ribbon(alpha=0.2)+
-  geom_point(data=fauna_ab_red,aes(x=sqrt_inv_n_tilda,y=yi),alpha=0.2,inherit.aes = FALSE)+
+  geom_point(data=abundance_red,aes(x=sqrt_inv_n_tilda,y=yi),alpha=0.2,inherit.aes = FALSE)+
   theme_cowplot()+
   labs(x="square root of inverse of effective sample size",y="effect size(lnRR)")
 #impact is relatively small
 
+
+#need to repeat this for:
+# 1 - abundance and precipitation increase
+# 2 - diversity and precipitation decreases
+# 3 - diversity and precipitation increases
+# 4 - abundance with increases and decreases combined
+# 5 - diversity with increases and decreases combined
+
+
+#############################################################################
+#2 - tests of publication biases for all abundance data######################
+#############################################################################
+
+# create a unit-level random effect to model residual variance in metafor
+abundance$obsID <- 1:nrow(abundance)
+
+# mean-centering year of publication to help with interpretation
+abundance$year.c <- as.vector(scale(abundance$study_year, scale = F))
+
+#run an all-in publication bias test
+abundance_all_in_bias_model<-rma.mv(yi,vi,
+                                        mods = ~-1+
+                                          sqrt_inv_n_tilda+
+                                          year.c+
+                                          perc_annual_dist, 
+                                        random=list(~1|Site_ID/Study_ID,
+                                                    ~1|obsID),
+                                        data=abundance,
+                                        method="REML",
+                                        test="t")
+
+abundance_model<-rma.mv(yi,vi,mods = ~perc_annual_dist, 
+                                    random=list(~1|Site_ID/Study_ID,
+                                                ~1|obsID),
+                                    data=abundance,
+                                    method="REML",
+                                    test="t")
+
+#evidence of impact of small-study effect - i.e. that effect sizes with larger uncertainty tend to be larger
+#however, the impact of this on the slope related to change in precipitation is very small
+
+
+#############################################################################
+#3 - tests of publication biases for all diversity data######################
+#############################################################################
+
+# create a unit-level random effect to model residual variance in metafor
+diversity$obsID <- 1:nrow(diversity)
+
+# mean-centering year of publication to help with interpretation
+diversity$year.c <- as.vector(scale(diversity$study_year, scale = F))
+
+#run an all-in publication bias test
+diversity_all_in_bias_model<-rma.mv(yi,vi,
+                                    mods = ~-1+
+                                      sqrt_inv_n_tilda+
+                                      year.c+
+                                      perc_annual_dist, 
+                                    random=list(~1|Site_ID/Study_ID,
+                                                ~1|obsID),
+                                    data=diversity,
+                                    method="REML",
+                                    test="t")
+#little evidence of impact of small-study effect or of a decline effect
