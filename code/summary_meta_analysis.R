@@ -11,13 +11,13 @@ library(tidyr)
 
 #####################################
 #notes:
-#1 - I need to change all the names for the dataframes because of the new .csv files
+# - I need to add analysis investigating the potential impacts of publication biases
 #2 -I need to add analysis examining the impact of changes in precipitation magnitude
 
 
-#read in .csv file with soil fauna data
-soil_fauna_df<- read_csv("data/study_data_for_analysis_07_06.csv")
-
+#read in .csv files with soil fauna data
+abundance<- read_csv("data/abundance_data.csv")
+diversity<- read_csv("data/diversity_data.csv")
 
 #---------------------------------------------------
 #3. data analysis
@@ -27,8 +27,8 @@ soil_fauna_df<- read_csv("data/study_data_for_analysis_07_06.csv")
 #analysis of change in abundance#
 #################################
 
-fauna_ab_m0<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=fauna_ab)#null model
-fauna_ab_m1 <-rma.mv(yi,vi,mods = ~disturbance_type-1, random=~1|Site_ID/Study_ID,data=fauna_ab)#impact of drought vs increases
+fauna_ab_m0<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=abundance)#null model
+fauna_ab_m1 <-rma.mv(yi,vi,mods = ~disturbance_type-1, random=~1|Site_ID/Study_ID,data=abundance)#impact of drought vs increases
 
 #calculate cook distances
 cooks_ab_0<-cooks.distance(fauna_ab_m0)
@@ -39,24 +39,25 @@ c_dists<-data.frame(cooks_ab_0,cooks_ab_1)
 ggplot(c_dists,aes(cooks_ab_0,cooks_ab_1))+
   geom_point()+
   scale_x_log10()+
-  scale_y_log10()
+  scale_y_log10()+
+  geom_abline()
 
 #there are some cooks distances for model 1 that are much larger than for the null model
 #this means that we should filter out high cooks distances for model 1 and then rerun the model
-fauna_ab_filtered<- fauna_ab %>%cbind(cooks_ab_1) %>%filter(cooks_ab_1 < 3.0*mean(cooks_ab_1,na.rm=TRUE))
+abundance_filtered<- abundance %>%cbind(cooks_ab_1) %>%filter(cooks_ab_1 < 3.0*mean(cooks_ab_1,na.rm=TRUE))
 #this removed 8 comparisons
 
 #rerun analysis of impact of decreases vs decreases
 fauna_ab_m1_filtered<-rma.mv(yi,vi,mods = ~disturbance_type-1, 
-                             random=~1|Site_ID/Study_ID,data=fauna_ab_filtered)
-#this shows a 48% reduction with precipitation decreases and a 49% increase for precipitation increases
+                             random=~1|Site_ID/Study_ID,data=abundance_filtered,method = "REML",test = "t",dfs="contain")
+#this shows a 48% reduction with precipitation decreases and a 48% increase for precipitation increases
 
 ##########################################
 #analysis of changes in alpha diversity###
 ##########################################
 
-fauna_div_m0<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=fauna_div)#null model
-fauna_div_m1 <-rma.mv(yi,vi,mods = ~factor(disturbance_type)-1, random=~1|Site_ID/Study_ID,data=fauna_div)#impact of drought vs increases
+fauna_div_m0<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=diversity)#null model
+fauna_div_m1<-rma.mv(yi,vi,mods = ~disturbance_type-1, random=~1|Site_ID/Study_ID,data=diversity)#impact of drought vs increases
 
 #calculate cook distances
 cooks_div_0<-cooks.distance(fauna_div_m0)
@@ -72,13 +73,19 @@ ggplot(c_dists_div,aes(cooks_div_0,cooks_div_1))+
 
 #again there are some cooks distances for model 1 that are much larger than for the null model
 #this means that we should filter out high cooks distances for model 1 and then rerun the model
-fauna_div_filtered<- fauna_div %>%cbind(cooks_div_1) %>%filter(cooks_div_1 < 3.0*mean(cooks_div_1,na.rm=TRUE))
+diversity_filtered<- diversity %>%cbind(cooks_div_1) %>%filter(cooks_div_1 < 3.0*mean(cooks_div_1,na.rm=TRUE))
 #this removed 2 comparisons
 
 #rerun analysis of impact of decreases vs decreases
-fauna_div_m1_filtered<-rma.mv(yi,vi,mods = ~factor(disturbance_type)-1, 
-                             random=~1|Site_ID/Study_ID,data=fauna_div_filtered)
-#this shows a 9% reduction with precipitation decreases and a 12% increase for precipitation increasess
+fauna_div_m1_filtered<-rma.mv(yi,vi,mods = ~disturbance_type-1, 
+                             random=~1|Site_ID/Study_ID,data=diversity_filtered,method = "REML",test = "t",dfs="contain")
+
+#this shows a 9% reduction with precipitation decreases and a 12% increase for precipitation increases
+#changes due to precipitation decreases are not significant, changes due to increases are significant
+
+
+
+
 
 #---------------------------------------------------
 #3. Plot figures 
@@ -104,18 +111,16 @@ comb_preds_2<-comb_preds_2%>%
          per_pi.ub=(exp(pi.ub)-1)*100)
 
 #organise data into one dataset
-fauna_ab_filtered<-fauna_ab_filtered%>%
+abundance_filtered2<-abundance_filtered%>%
   select(-cooks_ab_1)
-fauna_div_filtered<-fauna_div_filtered%>%
+diversity_filtered2<-diversity_filtered%>%
   select(-cooks_div_1)
-fauna_filtered<-rbind(fauna_ab_filtered,fauna_div_filtered)
+fauna_filtered<-rbind(abundance_filtered2,diversity_filtered2)
 
 #relabel disturbance types
 fauna_filtered<-fauna_filtered%>%
   mutate(disturbance=if_else(disturbance_type=="drought","Precipitation\nreduction","Precipitation\nincrease"),
          outcome=if_else(broad_outcome=="abundance","Abundance","Alpha diversity"))
-
-fauna_filtered$broad_outcome
 
 #make my own orchard plot
 ggplot()+
@@ -168,22 +173,22 @@ ggsave("figures/for_paper/abun_div_summary_facet.png",width = 20,height = 14,uni
 #alternative version using the orchaRd package
 #abundance model
 orchard_abun_plot<-orchard_plot(fauna_ab_m1_filtered,  group ='Site_ID',mod = 'disturbance_type',
-                  data = fauna_ab_filtered, 
+                  data = abundance_filtered, 
                   xlab = "Change in abundance relative\nto baseline (log response ratio)",
                   k = TRUE, g = TRUE,k.pos="left")+
   theme_cowplot()+
   scale_fill_manual(values = c("#fde725","#1f9e89"))+
   scale_color_manual(values = c("#fde725","#1f9e89"))+
   scale_x_discrete(labels=c("Precipitation\ndecrease", "Precipitation\n increase"))+
-  annotate("text", x = 2.3, y = 2, label = "+49%")+
-  annotate("text", x = 1.3, y = 2, label = "-49%")+
+  annotate("text", x = 2.3, y = 2, label = "+48%")+
+  annotate("text", x = 1.3, y = 2, label = "-48%")+
   theme(legend.position = "none",
         text = element_text(size=10),
         axis.text = element_text(size=10))
 
 #diversity model
 orchard_div_plot<-orchard_plot(fauna_div_m1_filtered,  group ='Site_ID',mod = 'disturbance_type',
-                                data = fauna_div_filtered, 
+                                data = diversity_filtered, 
                                 xlab = "Change in alpha diversity relative\nto baseline (log response ratio)",
                                 k = TRUE, g = TRUE,k.pos="left")+
   theme_cowplot()+
@@ -199,6 +204,14 @@ orchard_div_plot<-orchard_plot(fauna_div_m1_filtered,  group ='Site_ID',mod = 'd
 #combine into one figure
 combined_orchard_plots<-plot_grid(orchard_abun_plot,orchard_div_plot,labels = c("(a)","(b)"))
 save_plot("figures/for_paper/combined_orchard_plots.png",combined_orchard_plots,base_height = 12,base_width = 20,units="cm")
+
+
+
+#######################################################
+#Leo's analysis########################################
+#######################################################
+
+
 
 
 #Figure 2. Diversity magnitude 

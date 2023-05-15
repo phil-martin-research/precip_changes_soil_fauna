@@ -8,7 +8,7 @@ library(tidyr)
 
 
 #read in .csv file with soil fauna data
-soil_fauna_df<- read_csv("data/study_data_for_analysis_07_06.csv")
+soil_fauna_df<- read_csv("data/ALL_env_df.csv")
 
 #---------------------------------------------------
 #1 - format dataset for analysis
