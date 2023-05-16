@@ -326,11 +326,27 @@ ggplot(new_data,aes(perc_annual_dist,y=pred,ymin=ci.lb,ymax=ci.ub,colour=as.fact
        y="Change in soil fauna alpha diversity\n(log response ratio)",
        fill="Aridity",colour="Aridity")+
   scale_color_manual(values = c("#1f78b4","#b2df8a"))+
-  scale_fill_manual(values = c("#1f78b4","#b2df8a"))
-ggsave("figures/for_paper/diversity_precip_arid_lines.png",width = 20,height = 14,units = "cm",dpi = 300)
+  scale_fill_manual(values = c("#1f78b4","#b2df8a"))+
+  facet_wrap(~aridity)+
+  theme(legend.position = "none")
+ggsave("figures/for_paper/diversity_precip_arid_lines.png",width = 20,height = 12,units = "cm",dpi = 300)
+#not very convinced by this result and figure
 
+#could divide between humid and not humid
 
+diversity_filtered%>%
+  mutate(arid_group=ifelse(aridity>0.65,"Humid","Not humid"))%>%
+  ggplot(aes(x=perc_annual_dist))+
+  geom_histogram()+
+  facet_wrap(~arid_group)
 
+diversity_filtered%>%
+  mutate(arid_group=ifelse(aridity>0.65,"Humid","Not humid"))%>%
+  ggplot(aes(x=perc_annual_dist,y=yi))+
+  geom_point(shape=1)+
+  facet_wrap(~arid_group)+
+  geom_smooth()
+  
 
 
 #######################################################
