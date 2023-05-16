@@ -291,6 +291,8 @@ div_f1
 
 #Figure 3. Precipitation biases compared to CMIP5 predictions. 
 
+
+
 #get environmental data
 env_2050 <- getData('CMIP5', var="bio", res=2.5, model="HE", year=50, rcp=85)
 env_2070 <- getData('CMIP5', var="bio", res=2.5, model="HE", year=70, rcp=85)

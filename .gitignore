@@ -2,3 +2,6 @@
 .Rhistory
 .RData
 .Ruserdata
+.RDataTmp
+cmip5
+wc2-5
