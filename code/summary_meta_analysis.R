@@ -8,49 +8,85 @@ library(metafor)
 library(orchaRd)
 library(ggbeeswarm)
 library(tidyr)
+library(tidymodels)
+
+######################################
+#function to calculate I2 for multilevel models
+
+I2_multi<-function(model){
+  W <- diag(1/model$vi)
+  X <- model.matrix(model)
+  P <- W - W %*% X %*% solve(t(X) %*% W %*% X) %*% t(X) %*% W
+  100 * sum(model$sigma2) / (sum(model$sigma2) + (model$k-model$p)/sum(diag(P)))
+}
 
 #####################################
 #notes:
 # - I need to add analysis investigating the potential impacts of publication biases
-#2 -I need to add analysis examining the impact of changes in precipitation magnitude
+# -I need to add analysis examining the impact of changes in precipitation magnitude
 
 
 #read in .csv files with soil fauna data
-abundance<- read_csv("data/abundance_data.csv")
-diversity<- read_csv("data/diversity_data.csv")
+abundance_red<- read_csv("data/abundance_red_data.csv")
+abundance_inc<- read_csv("data/abundance_inc_data.csv")
+diversity_red<- read_csv("data/diversity_red_data.csv")
+diversity_inc<- read_csv("data/diversity_inc_data.csv")
 
 #---------------------------------------------------
-#3. data analysis
+#1. data analysis
 #---------------------------------------------------
 
 #################################
 #analysis of change in abundance#
 #################################
 
-fauna_ab_m0<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=abundance)#null model
-fauna_ab_m1 <-rma.mv(yi,vi,mods = ~disturbance_type-1, random=~1|Site_ID/Study_ID,data=abundance)#impact of drought vs increases
+########################################
+#following reductions in precipitation##
+########################################
+
+fauna_ab_red_m0<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=abundance_red)#null model
 
 #calculate cook distances
-cooks_ab_0<-cooks.distance(fauna_ab_m0)
-cooks_ab_1<-cooks.distance(fauna_ab_m1)
-#combine into one dataframe
-c_dists<-data.frame(cooks_ab_0,cooks_ab_1)
-#compare cook distances for different models
-ggplot(c_dists,aes(cooks_ab_0,cooks_ab_1))+
-  geom_point()+
-  scale_x_log10()+
-  scale_y_log10()+
-  geom_abline()
+cooks_ab_red_0<-cooks.distance(fauna_ab_red_m0)
 
 #there are some cooks distances for model 1 that are much larger than for the null model
 #this means that we should filter out high cooks distances for model 1 and then rerun the model
-abundance_filtered<- abundance %>%cbind(cooks_ab_1) %>%filter(cooks_ab_1 < 3.0*mean(cooks_ab_1,na.rm=TRUE))
-#this removed 8 comparisons
+abundance_red_filtered<- abundance_red %>%cbind(cooks_ab_red_0) %>%filter(cooks_ab_red_0 < 3.0*mean(cooks_ab_red_0,na.rm=TRUE))
+#this removed 10 comparisons
 
-#rerun analysis of impact of decreases vs decreases
-fauna_ab_m1_filtered<-rma.mv(yi,vi,mods = ~disturbance_type-1, 
-                             random=~1|Site_ID/Study_ID,data=abundance_filtered,method = "REML",test = "t",dfs="contain")
-#this shows a 48% reduction with precipitation decreases and a 48% increase for precipitation increases
+#rerun analysis of impact of reductions in precipitation
+fauna_ab_red_m0_filter<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=abundance_red_filtered)#null model
+#this shows a 38% reduction with precipitation decreases
+
+#run sensitivity analysis based on critical appraisal quality
+abundance_red_appraisal<-abundance_red%>%
+                         filter(Validity!="Low validity")
+
+fauna_ab_red_m0_no_low<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=abundance_red_appraisal)#model with no low validity studies
+#studies with higher robustness tended to show greater reductions in abundance
+
+#put all this information into a table
+#info to include - estimate, se, p val, Q result, I squared
+
+#create loop to do this
+model_type<-c("Null model","Outliers removed","Low validity removed")
+model_list<-list(fauna_ab_red_m0,fauna_ab_red_m0_filter,fauna_ab_red_m0_no_low)
+sensitivity_summary<-data.frame()
+for (i in 1:3){
+  params<-broom::tidy(model_list[[i]])
+  qe<-model_list[[i]]$QE
+  qe_p<-model_list[[i]]$QEp
+  I2<-I2_multi(model_list[[i]])
+  sens_temp<-data.frame(model_type=model_type[i],params,qe,qe_p,I2)
+  sensitivity_summary<-rbind(sensitivity_summary,sens_temp)
+}
+
+#finish this off later!!
+
+fauna_ab_red_m0_no_low$
+data.frame(model_type=c("Null model","Outliers removed","Low validity removed"),
+           estimate=c())
+
 
 ##########################################
 #analysis of changes in alpha diversity###

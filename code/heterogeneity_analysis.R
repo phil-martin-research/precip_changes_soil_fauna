@@ -45,6 +45,11 @@ abundance_complete<-abundance[complete.cases(abundance$perc_annual_dist),]
 diversity_complete<-diversity[complete.cases(diversity$perc_annual_dist),]
 #we lose 4 comparisons for diversity
 
+#create variable for sampling depth
+abundance_filtered%>%
+  mutate(sampling_depth_new=ifelse(sampling_method=="pitfall traps",0,sampling_depth))
+
+
 ###############################################################################
 #1 - models of heterogeneity in response of abundance of soil and litter fauna#
 ###############################################################################
@@ -70,6 +75,26 @@ M8<-rma.mv(yi,vi,mods = ~perc_annual_dist+Functional_group_size,random=~1|Site_I
 M9<-rma.mv(yi,vi,mods = ~perc_annual_dist*Functional_group_size-1,random=~1|Site_ID/Study_ID,data=abundance_filtered)
 M10<-rma.mv(yi,vi,mods = ~perc_annual_dist*Functional_group_size+I(perc_annual_dist^2)*Functional_group_size-1,random=~1|Site_ID/Study_ID,data=abundance_filtered)
 M11<-rma.mv(yi,vi,mods = ~perc_annual_dist*aridity+Functional_group_size,random=~1|Site_ID/Study_ID,data=abundance_filtered)
+
+
+
+
+
+
+
+vif(M1)
+vif(M2)
+vif(M3)
+vif(M4)
+vif(M5)
+vif(M6)
+vif(M7)
+vif(M8)
+vif(M9)
+data.frame(vif(M10))
+vif(M11)
+
+
 
 #check to see which model is the best fit
 AIC.rma(M0,M1,M2,M3,M4,M5,M6,M7,M8,M9,M10,M11)

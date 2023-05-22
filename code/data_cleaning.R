@@ -8,7 +8,9 @@ library(tidyr)
 
 
 #read in .csv file with soil fauna data
-soil_fauna_df<- read_csv("data/ALL_env_df.csv")
+soil_fauna_df<- read_csv("data/study_data_for_analysis_07_06.csv")
+#read in .csv files from critical appraisal work
+crit_appraisal<-read_csv("data/critical_appraisal.csv")
 
 #---------------------------------------------------
 #1 - format dataset for analysis
@@ -20,7 +22,7 @@ soil_fauna_df <- soil_fauna_df %>%
     #remove disturbance strengths that represent >500% increases in precipitation
     perc_annual_dist = if_else(perc_annual_dist < 500, perc_annual_dist, NA_real_),
     perc_during_dist = if_else(perc_during_dist < 500, perc_during_dist, NA_real_),
-    #change all varainces that are 0 to NA
+    #change all variances that are 0 to NA
     control_var = if_else(control_var !=0, control_var, NA_real_),
     dist_var = if_else(dist_var !=0, dist_var, NA_real_),
     #alter format of precipitation change to represent continuous change from increase to decrease
@@ -30,6 +32,17 @@ soil_fauna_df <- soil_fauna_df %>%
     control_SD=if_else(var_type=="SE", control_var*sqrt(control_n), control_var),
     dist_SD=if_else(var_type=="SE",dist_var*sqrt(dist_n), dist_var)
   )
+
+#remove columns that we don't use anymore 
+col_details<-data.frame(col_name=names(soil_fauna_df),
+               col_index=seq(1,72))
+
+soil_fauna_df<-select(soil_fauna_df,-c(1,2,12,13,18,19,22,23,36:52,61:70))
+
+#join with data from critical appraisal 
+soil_fauna_df<-soil_fauna_df%>%
+               left_join(crit_appraisal,"Study_ID")
+
 
 #check to see if any of the means are equal to zero
 #control group
