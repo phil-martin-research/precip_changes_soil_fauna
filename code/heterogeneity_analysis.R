@@ -1,4 +1,4 @@
-# script to explore heterogeneity in the effects of precipitation changes on soil and litter fauan 
+# script to explore heterogeneity in the effects of precipitation changes on soil and litter fauna 
 
 rm(list = ls())
 
@@ -17,6 +17,18 @@ library(broom)
 #read in .csv files with soil fauna data
 abundance<- read_csv("data/abundance_data.csv")
 diversity<- read_csv("data/diversity_data.csv")
+
+#data exploration
+
+#look at correlations between change in precipitation and other variables
+ggplot(abundance,aes(perc_annual_dist,aridity))+ #aridity
+  geom_point(shape=1)+
+  geom_smooth(method="lm")
+#not very compelling correlation
+ggplot(abundance,aes(perc_annual_dist,av_width))+ #body width
+  geom_point(shape=1)+
+  geom_smooth(method="lm")
+
 
 ###############################################################################
 #1 - imputation of missing values for precipitation change######################
@@ -39,23 +51,22 @@ abundance<-abundance%>%
          )
 
 
-#complete cases for the variable about percentage change in precipitation
-abundance_complete<-abundance[complete.cases(abundance$perc_annual_dist),]
-#we lose 6 comparisons for abundance
-diversity_complete<-diversity[complete.cases(diversity$perc_annual_dist),]
+#complete cases for the variable about percentage change in precipitation and body size
+abundance_complete<-abundance[complete.cases(abundance$perc_annual_dist,abundance$Functional_group_size,abundance$av_width),]
+#we lose 22 comparisons for abundance
+diversity_complete<-diversity[complete.cases(diversity$perc_annual_dist,diversity$Functional_group_size,diversity$av_width),]
 #we lose 4 comparisons for diversity
-
-#create variable for sampling depth
-abundance_filtered%>%
-  mutate(sampling_depth_new=ifelse(sampling_method=="pitfall traps",0,sampling_depth))
-
 
 ###############################################################################
 #1 - models of heterogeneity in response of abundance of soil and litter fauna#
 ###############################################################################
 
+names(abundance_complete)
+
+abundance_complete$Functional_group_size
+
 #first a saturated model including all potential predictors
-M_sat_abun<-rma.mv(yi,vi,mods = ~aridity+perc_annual_dist+I(perc_annual_dist^2)+Functional_group_size,random=~1|Site_ID/Study_ID,data=abundance_complete)
+M_sat_abun<-rma.mv(yi,vi,mods = ~aridity+perc_annual_dist+Functional_group_size+above_below+av_width,random=~1|Site_ID/Study_ID,data=abundance_complete)
 #use cooks distance to identify influential points
 cooks_sat_abun<-cooks.distance(M_sat_abun)
 #filter out high cooks distances for saturated model and then run all models
@@ -64,19 +75,37 @@ abundance_filtered<- abundance_complete %>%cbind(cooks_sat_abun) %>%filter(cooks
 
 #test all models against each other
 M0<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=abundance_filtered)
-M1<-rma.mv(yi,vi,mods = ~aridity,random=~1|Site_ID/Study_ID,data=abundance_filtered)
-M2<-rma.mv(yi,vi,mods = ~perc_annual_dist ,random=~1|Site_ID/Study_ID,data=abundance_filtered)
-M3<-rma.mv(yi,vi,mods = ~Functional_group_size ,random=~1|Site_ID/Study_ID,data=abundance_filtered)
-M4<-rma.mv(yi,vi,mods = ~aridity+perc_annual_dist,random=~1|Site_ID/Study_ID,data=abundance_filtered)
-M5<-rma.mv(yi,vi,mods = ~aridity*perc_annual_dist,random=~1|Site_ID/Study_ID,data=abundance_filtered)
-M6<-rma.mv(yi,vi,mods = ~aridity+Functional_group_size,random=~1|Site_ID/Study_ID,data=abundance_filtered)
-M7<-rma.mv(yi,vi,mods = ~aridity*Functional_group_size,random=~1|Site_ID/Study_ID,data=abundance_filtered)
-M8<-rma.mv(yi,vi,mods = ~perc_annual_dist+Functional_group_size,random=~1|Site_ID/Study_ID,data=abundance_filtered)
-M9<-rma.mv(yi,vi,mods = ~perc_annual_dist*Functional_group_size-1,random=~1|Site_ID/Study_ID,data=abundance_filtered)
-M10<-rma.mv(yi,vi,mods = ~perc_annual_dist*Functional_group_size+I(perc_annual_dist^2)*Functional_group_size-1,random=~1|Site_ID/Study_ID,data=abundance_filtered)
-M11<-rma.mv(yi,vi,mods = ~perc_annual_dist*aridity+Functional_group_size,random=~1|Site_ID/Study_ID,data=abundance_filtered)
+M1<-rma.mv(yi,vi,mods = ~perc_annual_dist ,random=~1|Site_ID/Study_ID,data=abundance_filtered)
+M2<-rma.mv(yi,vi,mods = ~perc_annual_dist*aridity,random=~1|Site_ID/Study_ID,data=abundance_filtered)
+M3<-rma.mv(yi,vi,mods = ~perc_annual_dist*Functional_group_size,random=~1|Site_ID/Study_ID,data=abundance_filtered)
+M4<-rma.mv(yi,vi,mods = ~perc_annual_dist*above_below,random=~1|Site_ID/Study_ID,data=abundance_filtered)
+M5<-rma.mv(yi,vi,mods = ~perc_annual_dist*Functional_group_size,random=~1|Site_ID/Study_ID,data=abundance_filtered)
+M6<-rma.mv(yi,vi,mods = ~perc_annual_dist*log(av_width),random=~1|Site_ID/Study_ID,data=abundance_filtered)
 
 
+vif(M1)
+vif(M2)
+vif(M3)
+vif(M4)
+vif(M5)
+vif(M6)
+
+#centre perc_annual_dist, aridity and av_width
+
+abundance_filtered$perc_annual_dist_centred<-abundance_filtered$perc_annual_dist-mean(abundance_filtered$perc_annual_dist)
+abundance_filtered$aridity_centred<-abundance_filtered$aridity-mean(abundance_filtered$aridity)
+abundance_filtered$av_width_centred<-abundance_filtered$av_width-mean(abundance_filtered$av_width)
+
+#rerun models with new centred variables
+M0<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=abundance_complete,method="ML")
+M1<-rma.mv(yi,vi,mods = ~perc_annual_dist_centred ,random=~1|Site_ID/Study_ID,data=abundance_complete,method="ML")
+M2<-rma.mv(yi,vi,mods = ~perc_annual_dist_centred*aridity_centred,random=~1|Site_ID/Study_ID,data=abundance_complete,method="ML")
+M3<-rma.mv(yi,vi,mods = ~perc_annual_dist_centred*Functional_group_size,random=~1|Site_ID/Study_ID,data=abundance_complete,method="ML")
+M4<-rma.mv(yi,vi,mods = ~perc_annual_dist_centred*above_below,random=~1|Site_ID/Study_ID,data=abundance_complete,method="ML")
+M5<-rma.mv(yi,vi,mods = ~perc_annual_dist_centred*Functional_group_size,random=~1|Site_ID/Study_ID,data=abundance_complete,method="ML")
+M6<-rma.mv(yi,vi,mods = ~perc_annual_dist_centred*log(av_width),random=~1|Site_ID/Study_ID,data=abundance_complete,method="ML")
+M7<-rma.mv(yi,vi,mods = ~perc_annual_dist_centred*av_width,random=~1|Site_ID/Study_ID,data=abundance_complete,method="ML")
+M8<-rma.mv(yi,vi,mods = ~perc_annual_dist_centred*av_width+perc_annual_dist_centred*above_below,random=~1|Site_ID/Study_ID,data=abundance_complete,method="ML")
 
 
 
@@ -90,14 +119,23 @@ vif(M5)
 vif(M6)
 vif(M7)
 vif(M8)
-vif(M9)
-data.frame(vif(M10))
-vif(M11)
+AIC.rma(M1,M2,M3,M4,M5,M6,M7,M8)
 
+null_sigma<-sum(M0$sigma2)
+
+(null_sigma-sum(M7$sigma2))/null_sigma
+
+
+(M0$sigma2[1] - M8$sigma2[1]) / M0$sigma2[1]
+(M0$sigma2[2] - M8$sigma2[2]) / M0$sigma2[2]
+(Model1$sigma2[2] - Model2$sigma2[2]) / Model1$sigma2[2]
+
+ggplot(abundance_complete,aes(perc_annual_dist_centred,yi,size=1/vi))+
+  geom_point(shape=1)
 
 
 #check to see which model is the best fit
-AIC.rma(M0,M1,M2,M3,M4,M5,M6,M7,M8,M9,M10,M11)
+AIC.rma(M0,M1,M2,M3,M4,M5,M6,M7)
 
 #copy and save the model formula
 M10_formula<-(~perc_annual_dist*Functional_group_size+I(perc_annual_dist^2)*Functional_group_size-1)

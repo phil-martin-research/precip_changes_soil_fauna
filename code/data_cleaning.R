@@ -8,7 +8,7 @@ library(tidyr)
 
 
 #read in .csv file with soil fauna data
-soil_fauna_df<- read_csv("data/study_data_for_analysis_07_06.csv")
+soil_fauna_df<- read_csv("data/study_data_for_analysis_26_04.csv")
 #read in .csv files from critical appraisal work
 crit_appraisal<-read_csv("data/critical_appraisal.csv")
 
@@ -35,9 +35,9 @@ soil_fauna_df <- soil_fauna_df %>%
 
 #remove columns that we don't use anymore 
 col_details<-data.frame(col_name=names(soil_fauna_df),
-               col_index=seq(1,72))
+               col_index=seq(1,89))
 
-soil_fauna_df<-select(soil_fauna_df,-c(1,2,12,13,18,19,22,23,36:52,61:70))
+soil_fauna_df<-select(soil_fauna_df,-c(1,11,12,17,18,21,22,36:46,55:68,70:78))
 
 #join with data from critical appraisal 
 soil_fauna_df<-soil_fauna_df%>%
