@@ -8,7 +8,7 @@ library(tidyr)
 
 
 #read in .csv file with soil fauna data
-soil_fauna_df<- read_csv("data/study_data_for_analysis_26_04.csv")
+soil_fauna_df<- read_csv("data/study_data_for_analysis_2023_05_24.csv")
 #read in .csv files from critical appraisal work
 crit_appraisal<-read_csv("data/critical_appraisal.csv")
 
