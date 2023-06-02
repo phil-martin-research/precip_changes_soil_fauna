@@ -53,9 +53,9 @@ abundance<-abundance%>%
 
 
 #complete cases for the variable about percentage change in precipitation and body size
-abundance_complete<-abundance[complete.cases(abundance$perc_annual_dist,abundance$Functional_group_size,abundance$av_width),]
+abundance_complete<-abundance[complete.cases(abundance$perc_annual_dist,abundance$Functional_group_size),]
 #we lose 30 comparisons for abundance
-diversity_complete<-diversity[complete.cases(diversity$perc_annual_dist,diversity$Functional_group_size,diversity$av_width),]
+diversity_complete<-diversity[complete.cases(diversity$perc_annual_dist,diversity$Functional_group_size),]
 #we lose 4 comparisons for diversity
 
 ###############################################################################
@@ -156,7 +156,7 @@ abundance_sub%>%
   summarise(min_precip=min(perc_annual_dist_centred),
             max_precip=max(perc_annual_dist_centred))
 
-new_data_micro<-subset(new_data,Functional_group_size=="microfauna"&perc_annual_dist_centred<=58)
+new_data_micro<-subset(new_data,Functional_group_size=="microfauna"&perc_annual_dist_centred<=68.2)
 new_data_meso<-subset(new_data,Functional_group_size!="microfauna")
 
 

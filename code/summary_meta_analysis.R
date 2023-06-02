@@ -49,21 +49,21 @@ fauna_ab_red_m0<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=abundance_red)#nul
 #calculate cook distances
 cooks_ab_red_0<-cooks.distance(fauna_ab_red_m0)
 
-#there are some cooks distances for model 1 that are much larger than for the null model
-#this means that we should filter out high cooks distances for model 1 and then rerun the model
+#filter out highly influential comparisons
 abundance_red_filtered<- abundance_red %>%cbind(cooks_ab_red_0) %>%filter(cooks_ab_red_0 < 3.0*mean(cooks_ab_red_0,na.rm=TRUE))
-#this removed 10 comparisons
+#this removed 13 comparisons
 
 #rerun analysis of impact of reductions in precipitation
 fauna_ab_red_m0_filter<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=abundance_red_filtered)#null model
-#this shows a 38% reduction with precipitation decreases
+#this shows a 36% reduction with precipitation decreases
 
 #run sensitivity analysis based on critical appraisal quality
 abundance_red_appraisal<-abundance_red%>%
                          filter(Validity!="Low validity")
 
 fauna_ab_red_m0_no_low<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=abundance_red_appraisal)#model with no low validity studies
-#studies with higher robustness tended to show greater reductions in abundance
+#studies with higher robustness tended to show greater reductions in abundance,
+#however studies with higher validity had higher reductions in precipitation
 
 #put all this information into a table
 #info to include - estimate, se, p val, Q result, I squared
@@ -81,45 +81,138 @@ for (i in 1:3){
   sensitivity_summary<-rbind(sensitivity_summary,sens_temp)
 }
 
+
+########################################
+#following increases in precipitation##
+########################################
+
+fauna_ab_inc_m0<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=abundance_inc)#null model
+
+#calculate cook distances
+cooks_ab_inc_0<-cooks.distance(fauna_ab_inc_m0)
+
+#filter out highly influential comparisons
+abundance_inc_filtered<- abundance_inc %>%cbind(cooks_ab_inc_0) %>%filter(cooks_ab_inc_0 < 3.0*mean(cooks_ab_inc_0,na.rm=TRUE))
+#this removed 12 comparisons
+
+#rerun analysis of impact of reductions in precipitation
+fauna_ab_inc_m0_filter<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=abundance_inc_filtered)#null model
+#this shows a marginally significant increase of 17%
+
+#run sensitivity analysis based on critical appraisal quality
+abundance_inc_appraisal<-abundance_inc%>%
+  filter(Validity!="Low validity")
+
+fauna_ab_inc_m0_no_low<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=abundance_inc_appraisal)#model with no low validity studies
+#just looking at more robust studies results in a decrease in effect size and loss of significance
+#why does this happen?
+
+#put all this information into a table
+#info to include - estimate, se, p val, Q result, I squared
+
+#create loop to do this
+model_type<-c("Null model","Outliers removed","Low validity removed")
+model_list<-list(fauna_ab_inc_m0,fauna_ab_inc_m0_filter,fauna_ab_inc_m0_no_low)
+sensitivity_summary_ab_inc<-data.frame()
+for (i in 1:3){
+  params<-broom::tidy(model_list[[i]])
+  qe<-model_list[[i]]$QE
+  qe_p<-model_list[[i]]$QEp
+  I2<-I2_multi(model_list[[i]])
+  sens_temp<-data.frame(model_type=model_type[i],params,qe,qe_p,I2)
+  sensitivity_summary_ab_inc<-rbind(sensitivity_summary_ab_inc,sens_temp)
+}
+
 #finish this off later!!
 
-fauna_ab_red_m0_no_low$
-data.frame(model_type=c("Null model","Outliers removed","Low validity removed"),
-           estimate=c())
 
 
 ##########################################
 #analysis of changes in alpha diversity###
 ##########################################
 
-fauna_div_m0<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=diversity)#null model
-fauna_div_m1<-rma.mv(yi,vi,mods = ~disturbance_type-1, random=~1|Site_ID/Study_ID,data=diversity)#impact of drought vs increases
+########################################
+#following reductions in precipitation##
+########################################
+
+fauna_div_red_m0<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=diversity_red)#null model
 
 #calculate cook distances
-cooks_div_0<-cooks.distance(fauna_div_m0)
-cooks_div_1<-cooks.distance(fauna_div_m1)
-#combine into one dataframe
-c_dists_div<-data.frame(cooks_div_0,cooks_div_1)
-#compare cook distances for different models
-ggplot(c_dists_div,aes(cooks_div_0,cooks_div_1))+
-  geom_point()+
-  scale_x_log10()+
-  scale_y_log10()+
-  geom_abline()
+cooks_div_red_0<-cooks.distance(fauna_div_red_m0)
 
-#again there are some cooks distances for model 1 that are much larger than for the null model
-#this means that we should filter out high cooks distances for model 1 and then rerun the model
-diversity_filtered<- diversity %>%cbind(cooks_div_1) %>%filter(cooks_div_1 < 3.0*mean(cooks_div_1,na.rm=TRUE))
-#this removed 2 comparisons
+#filter out highly influential comparisons
+diversity_red_filtered<- diversity_red %>%cbind(cooks_div_red_0) %>%filter(cooks_div_red_0 < 3.0*mean(cooks_div_red_0,na.rm=TRUE))
+#this removed 3 comparisons
 
-#rerun analysis of impact of decreases vs decreases
-fauna_div_m1_filtered<-rma.mv(yi,vi,mods = ~disturbance_type-1, 
-                             random=~1|Site_ID/Study_ID,data=diversity_filtered,method = "REML",test = "t",dfs="contain")
+#rerun analysis of impact of reductions in precipitation
+fauna_div_red_m0_filter<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=diversity_red_filtered)#null model
+#this shows an 8% reduction of diversity with precipitation decreases
 
-#this shows a 9% reduction with precipitation decreases and a 12% increase for precipitation increases
-#changes due to precipitation decreases are not significant, changes due to increases are significant
+#run sensitivity analysis based on critical appraisal quality
+diversity_red_appraisal<-diversity_red%>%
+  filter(Validity!="Low validity")
 
+fauna_div_red_m0_no_low<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=diversity_red_appraisal)#model with no low validity studies
+#studies with higher robustness tended to show greater reductions in diversity
+ggplot(diversity_red,aes(x=Validity,y=perc_annual_dist))+
+  geom_violin()
+#however studies with higher validity had higher reductions in precipitation
 
+#put all this information into a table
+#info to include - estimate, se, p val, Q result, I squared
+
+#create loop to do this
+model_type<-c("Null model","Outliers removed","Low validity removed")
+model_list<-list(fauna_div_red_m0,fauna_div_red_m0_filter,fauna_div_red_m0_no_low)
+div_red_sensitivity_summary<-data.frame()
+for (i in 1:3){
+  params<-broom::tidy(model_list[[i]])
+  qe<-model_list[[i]]$QE
+  qe_p<-model_list[[i]]$QEp
+  I2<-I2_multi(model_list[[i]])
+  sens_temp<-data.frame(model_type=model_type[i],params,qe,qe_p,I2)
+  div_red_sensitivity_summary<-rbind(div_red_sensitivity_summary,sens_temp)
+}
+
+########################################
+#following increases in precipitation##
+########################################
+
+fauna_div_inc_m0<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=diversity_inc)#null model
+
+#calculate cook distances
+cooks_div_inc_0<-cooks.distance(fauna_div_inc_m0)
+
+#filter out highly influential comparisons
+diversity_inc_filtered<- diversity_inc %>%cbind(cooks_div_inc_0) %>%filter(cooks_div_inc_0 < 3.0*mean(cooks_div_inc_0,na.rm=TRUE))
+#this removed 3 comparisons
+
+#rerun analysis of impact of reductions in precipitation
+fauna_div_inc_m0_filter<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=diversity_inc_filtered)#null model
+#this shows a 6% increase in diversity with precipitation decreases
+
+#run sensitivity analysis based on critical appraisal quality
+diversity_inc_appraisal<-diversity_inc%>%
+  filter(Validity!="Low validity")
+
+fauna_div_inc_m0_no_low<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=diversity_inc_appraisal)#model with no low validity studies
+#not much change in estimate here
+
+#put all this information into a table
+#info to include - estimate, se, p val, Q result, I squared
+
+#create loop to do this
+model_type<-c("Null model","Outliers removed","Low validity removed")
+model_list<-list(fauna_div_inc_m0,fauna_div_inc_m0_filter,fauna_div_inc_m0_no_low)
+div_inc_sensitivity_summary<-data.frame()
+for (i in 1:3){
+  params<-broom::tidy(model_list[[i]])
+  qe<-model_list[[i]]$QE
+  qe_p<-model_list[[i]]$QEp
+  I2<-I2_multi(model_list[[i]])
+  sens_temp<-data.frame(model_type=model_type[i],params,qe,qe_p,I2)
+  div_inc_sensitivity_summary<-rbind(div_inc_sensitivity_summary,sens_temp)
+}
 
 
 
