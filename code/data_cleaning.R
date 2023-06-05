@@ -5,14 +5,13 @@
 
 rm(list = ls())
 
-library(tidyverse)
-library(metafor)
-library(tidyr)
+pacman::p_load(tidyverse,metafor,tidyr,here,patchwork)
+
 
 #read in .csv file with soil fauna data
 crit_appraisal<- read_csv("data/critical_appraisal_2023_05_29.csv")
 sites<- read_csv("data/site_data_2023_05_29.csv")
-fact_table<- read_csv("data/fact_table_2023_05_29.csv")
+fact_table<- read_csv("data/fact_table_2023_06_02.csv")
 taxonomy<- read_csv("data/taxonomy.csv")
 body_length<- read_csv("data/body_length.csv")
 body_width<- read_csv("data/body_width.csv")
@@ -81,13 +80,7 @@ fact_table$study_year<-parse_number(fact_table$Study_ID,trim_ws = TRUE)
 #I need to sort this part out################
 #############################################
 
-#can I actually use this method to impute variance?
-
-#impute missing SD values
-alpha <- 0.05
-z_crit <- qnorm(1 - alpha / 2)
-
-
+#work out exact or approximate p values
 fact_table<-fact_table%>%
   mutate(exact_p_val=as.numeric(exact_p_val),
          approx_p_value_numeric=ifelse(approx_p_val==">0.1",median(c(1,0.1)),NA),
@@ -105,7 +98,6 @@ fact_table<-fact_table%>%
 #back calculate the pooled SD from means, group sizes, and the p-value based on this 
 #code from wolfgang https://gist.github.com/wviechtb/3834b707caf50948f15c314d2a26a84c
 
-
 fact_table<-fact_table%>%
   mutate(exact_tval=qt(exact_p_val/2, df=control_n+dist_n-2, lower.tail=FALSE),
          exact_pooled_SD=abs((disturbance_av - control_av) / (exact_tval * sqrt(1/dist_n + 1/control_n))),
@@ -117,33 +109,65 @@ fact_table<-fact_table%>%
 
 
 #use the recommended method of Nakagawa et al for calculation of variance
+#based on scripts from https://alistairmcnairsenior.github.io/Miss_SD_Sim/
+
+# Calculate CV on missing dataset. Note missing data will be ignored
+fact_table <- fact_table %>%
+  mutate(cv_Control = na_if(control_SD / control_av, Inf),
+         cv_Experimental = na_if(dist_SD / disturbance_av, Inf))
+
+# Function to calculate Geary's "number"
+geary <- function(mean, sd, n){
+  (1 / (sd / mean)) * ((4*n)^(3/2) / (1 + 4*n))
+}
+
+# Geary's test; assumption of normality assumed to be approximately correct when values are >= 3.
+fact_table <- fact_table %>% 
+  mutate(geary_control = geary(control_av, control_SD, control_n),
+         geary_trt = geary(disturbance_av, dist_SD, dist_n),
+         geary_test = ifelse(geary_control >= 3 & geary_trt >= 3, "pass", "fail"))
+# How many fail?
+geary_res <- fact_table %>% group_by(geary_test) %>% summarise(n = n()) %>%  data.frame()
+#24 effect sizes fail representing around 5% of the data
 
 
+# Calculate the average between study CV, which will replace missing values.
+fact_table <- cv_avg(x = control_av, sd = control_SD,
+                n = control_n, group = Study_ID, label = "1",
+                data = fact_table)
+fact_table <- cv_avg(x = disturbance_av, sd = dist_SD,
+                n = dist_n, group = Study_ID,
+                label = "2", data = fact_table)
 
-#impute values
-#based on the median coefficient of variation
-#and missing sample sizes based on median sample sizes
-control_cv<-median(fact_table$control_SD/fact_table$control_av,na.rm = TRUE)
-disturbance_cv<-median(fact_table$dist_SD/fact_table$disturbance_av,na.rm = TRUE)
-med_control_n<-median(fact_table$control_n,na.rm = TRUE)
-med_dist_n<-median(fact_table$dist_n,na.rm = TRUE)
+# Use weighted mean CV in replacement for where CV's are missing. Otherwise, calculate CV^2 of data that is known.
+fact_table <- fact_table %>%
+  mutate(cv2_cont_new = if_else(is.na(cv_Control),      b_CV2_1, cv_Control^2),
+         cv2_expt_new = if_else(is.na(cv_Experimental), b_CV2_2, cv_Experimental^2))
 
-fact_table<-fact_table%>%
-  mutate(control_SD=if_else(is.na(control_SD),control_cv*control_av,control_SD),
-         dist_SD=if_else(is.na(dist_SD),disturbance_cv*disturbance_av,dist_SD),
-         control_n=if_else(is.na(control_n),med_control_n,control_n),
-         dist_n=if_else(is.na(dist_n),med_dist_n,dist_n))
+# Now calculate new yi and vi, called lnrr_laj & v_lnrr_laj, respectively. 
+#This uses either the between individual CV^2 when missing or normal CV^2 when not missing.
+fact_table <- fact_table %>%
+  mutate(lnrr_laj = -lnrr_laj(m1 = control_av, m2 = disturbance_av,
+                             cv1_2 = cv2_cont_new, cv2_2 = cv2_expt_new,
+                             n1= control_n, n2 = dist_n),
+         v_lnrr_laj = v_lnrr_laj(cv1_2 = cv2_cont_new, n1= control_n,
+                                 cv2_2 = cv2_expt_new, n2 = dist_n))
+
+# We need to exclude some missing data in the raw data set and data that is not defined on the ratio scale.
+fact_table <- fact_table %>% filter(!is.infinite(lnrr_laj) & !is.na(lnrr_laj))
+#this loses quite a lot of rows, we need to see what's going on here
 
 #calculate log response ratio
 soil_fauna_rr<- escalc(m2i = control_av, m1i = disturbance_av, n2i = control_n, n1i = dist_n,
                        sd2i = control_SD, sd1i = dist_SD,  measure = "ROM", data = fact_table)
 
 
-ggplot(soil_fauna_rr,aes(vi,logRR_var))+
+ggplot(soil_fauna_rr,aes(yi,lnrr_laj))+
   geom_point()+
-  geom_abline()+
-  scale_x_continuous(trans = "log")+
-  scale_y_continuous(trans = "log")
+  geom_abline()
+
+#the similarlity of the two effect sizes is very high
+
 
 #add variable for the standard error of each effect size for publication bias analysis
 soil_fauna_rr$sei <- sqrt(soil_fauna_rr$vi)
