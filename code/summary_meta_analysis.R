@@ -2,13 +2,8 @@
 
 rm(list = ls())
 
-library(tidyverse)
-library(cowplot)
-library(metafor)
-library(orchaRd)
-library(ggbeeswarm)
-library(tidyr)
-library(tidymodels)
+pacman::p_load(tidyverse,tidyverse,cowplot,metafor,orchaRd,ggbeeswarm,tidyr,insight,gt,gtExtras,webshot)
+
 
 ######################################
 #function to calculate I2 for multilevel models
@@ -31,6 +26,8 @@ abundance_red<- read_csv("data/abundance_red_data.csv")
 abundance_inc<- read_csv("data/abundance_inc_data.csv")
 diversity_red<- read_csv("data/diversity_red_data.csv")
 diversity_inc<- read_csv("data/diversity_inc_data.csv")
+abundance<-read_csv("data/abundance_data.csv")
+diversity<-read_csv("data/diversity_data.csv")
 
 #---------------------------------------------------
 #1. data analysis
@@ -44,24 +41,24 @@ diversity_inc<- read_csv("data/diversity_inc_data.csv")
 #following reductions in precipitation##
 ########################################
 
-fauna_ab_red_m0<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=abundance_red)#null model
+fauna_ab_red_m0<-rma.mv(lnrr_laj,v_lnrr_laj,random=~1|Site_ID/Study_ID,data=abundance_red)#null model
 
 #calculate cook distances
 cooks_ab_red_0<-cooks.distance(fauna_ab_red_m0)
 
 #filter out highly influential comparisons
 abundance_red_filtered<- abundance_red %>%cbind(cooks_ab_red_0) %>%filter(cooks_ab_red_0 < 3.0*mean(cooks_ab_red_0,na.rm=TRUE))
-#this removed 13 comparisons
+#this removed 9 comparisons
 
 #rerun analysis of impact of reductions in precipitation
-fauna_ab_red_m0_filter<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=abundance_red_filtered)#null model
-#this shows a 36% reduction with precipitation decreases
+fauna_ab_red_m0_filter<-rma.mv(lnrr_laj,v_lnrr_laj,random=~1|Site_ID/Study_ID,data=abundance_red_filtered)#null model
+#this shows a 32% reduction with precipitation decreases
 
 #run sensitivity analysis based on critical appraisal quality
 abundance_red_appraisal<-abundance_red%>%
                          filter(Validity!="Low validity")
 
-fauna_ab_red_m0_no_low<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=abundance_red_appraisal)#model with no low validity studies
+fauna_ab_red_m0_no_low<-rma.mv(lnrr_laj,v_lnrr_laj,random=~1|Site_ID/Study_ID,data=abundance_red_appraisal)#model with no low validity studies
 #studies with higher robustness tended to show greater reductions in abundance,
 #however studies with higher validity had higher reductions in precipitation
 
@@ -71,39 +68,40 @@ fauna_ab_red_m0_no_low<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=abundance_r
 #create loop to do this
 model_type<-c("Null model","Outliers removed","Low validity removed")
 model_list<-list(fauna_ab_red_m0,fauna_ab_red_m0_filter,fauna_ab_red_m0_no_low)
-sensitivity_summary<-data.frame()
+ab_dec_sensitivity_summary<-data.frame()
 for (i in 1:3){
   params<-broom::tidy(model_list[[i]])
   qe<-model_list[[i]]$QE
   qe_p<-model_list[[i]]$QEp
   I2<-I2_multi(model_list[[i]])
-  sens_temp<-data.frame(model_type=model_type[i],params,qe,qe_p,I2)
-  sensitivity_summary<-rbind(sensitivity_summary,sens_temp)
+  sens_temp<-data.frame(disturbance="Precipitation reduction",outcome="Abundance",
+                        model_type=model_type[i],params,qe,qe_p,I2)
+  ab_dec_sensitivity_summary<-rbind(ab_dec_sensitivity_summary,sens_temp)
 }
-
 
 ########################################
 #following increases in precipitation##
 ########################################
 
-fauna_ab_inc_m0<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=abundance_inc)#null model
+fauna_ab_inc_m0<-rma.mv(lnrr_laj,v_lnrr_laj,random=~1|Site_ID/Study_ID,data=abundance_inc)#null model
+#this shows no significant increase with an increase of 19%
 
 #calculate cook distances
 cooks_ab_inc_0<-cooks.distance(fauna_ab_inc_m0)
 
 #filter out highly influential comparisons
 abundance_inc_filtered<- abundance_inc %>%cbind(cooks_ab_inc_0) %>%filter(cooks_ab_inc_0 < 3.0*mean(cooks_ab_inc_0,na.rm=TRUE))
-#this removed 12 comparisons
+#this removed 7 comparisons
 
 #rerun analysis of impact of reductions in precipitation
-fauna_ab_inc_m0_filter<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=abundance_inc_filtered)#null model
-#this shows a marginally significant increase of 17%
+fauna_ab_inc_m0_filter<-rma.mv(lnrr_laj,v_lnrr_laj,random=~1|Site_ID/Study_ID,data=abundance_inc_filtered)#null model
+#this shows no significant increase with an increase of 12%
 
 #run sensitivity analysis based on critical appraisal quality
 abundance_inc_appraisal<-abundance_inc%>%
   filter(Validity!="Low validity")
 
-fauna_ab_inc_m0_no_low<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=abundance_inc_appraisal)#model with no low validity studies
+fauna_ab_inc_m0_no_low<-rma.mv(lnrr_laj,v_lnrr_laj,random=~1|Site_ID/Study_ID,data=abundance_inc_appraisal)#model with no low validity studies
 #just looking at more robust studies results in a decrease in effect size and loss of significance
 #why does this happen?
 
@@ -119,13 +117,10 @@ for (i in 1:3){
   qe<-model_list[[i]]$QE
   qe_p<-model_list[[i]]$QEp
   I2<-I2_multi(model_list[[i]])
-  sens_temp<-data.frame(model_type=model_type[i],params,qe,qe_p,I2)
+  sens_temp<-data.frame(disturbance="Precipitation increase",outcome="Abundance",
+                        model_type=model_type[i],params,qe,qe_p,I2)
   sensitivity_summary_ab_inc<-rbind(sensitivity_summary_ab_inc,sens_temp)
 }
-
-#finish this off later!!
-
-
 
 ##########################################
 #analysis of changes in alpha diversity###
@@ -135,24 +130,24 @@ for (i in 1:3){
 #following reductions in precipitation##
 ########################################
 
-fauna_div_red_m0<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=diversity_red)#null model
+fauna_div_red_m0<-rma.mv(lnrr_laj,v_lnrr_laj,random=~1|Site_ID/Study_ID,data=diversity_red)#null model
 
 #calculate cook distances
 cooks_div_red_0<-cooks.distance(fauna_div_red_m0)
 
 #filter out highly influential comparisons
 diversity_red_filtered<- diversity_red %>%cbind(cooks_div_red_0) %>%filter(cooks_div_red_0 < 3.0*mean(cooks_div_red_0,na.rm=TRUE))
-#this removed 3 comparisons
+#this removed 5 comparisons
 
 #rerun analysis of impact of reductions in precipitation
-fauna_div_red_m0_filter<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=diversity_red_filtered)#null model
+fauna_div_red_m0_filter<-rma.mv(lnrr_laj,v_lnrr_laj,random=~1|Site_ID/Study_ID,data=diversity_red_filtered)#null model
 #this shows an 8% reduction of diversity with precipitation decreases
 
 #run sensitivity analysis based on critical appraisal quality
 diversity_red_appraisal<-diversity_red%>%
   filter(Validity!="Low validity")
 
-fauna_div_red_m0_no_low<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=diversity_red_appraisal)#model with no low validity studies
+fauna_div_red_m0_no_low<-rma.mv(lnrr_laj,v_lnrr_laj,random=~1|Site_ID/Study_ID,data=diversity_red_appraisal)#model with no low validity studies
 #studies with higher robustness tended to show greater reductions in diversity
 ggplot(diversity_red,aes(x=Validity,y=perc_annual_dist))+
   geom_violin()
@@ -170,7 +165,8 @@ for (i in 1:3){
   qe<-model_list[[i]]$QE
   qe_p<-model_list[[i]]$QEp
   I2<-I2_multi(model_list[[i]])
-  sens_temp<-data.frame(model_type=model_type[i],params,qe,qe_p,I2)
+  sens_temp<-data.frame(disturbance="Precipitation reduction",outcome="Alpha diversity",
+                        model_type=model_type[i],params,qe,qe_p,I2)
   div_red_sensitivity_summary<-rbind(div_red_sensitivity_summary,sens_temp)
 }
 
@@ -178,7 +174,7 @@ for (i in 1:3){
 #following increases in precipitation##
 ########################################
 
-fauna_div_inc_m0<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=diversity_inc)#null model
+fauna_div_inc_m0<-rma.mv(lnrr_laj,v_lnrr_laj,random=~1|Site_ID/Study_ID,data=diversity_inc)#null model
 
 #calculate cook distances
 cooks_div_inc_0<-cooks.distance(fauna_div_inc_m0)
@@ -188,15 +184,19 @@ diversity_inc_filtered<- diversity_inc %>%cbind(cooks_div_inc_0) %>%filter(cooks
 #this removed 3 comparisons
 
 #rerun analysis of impact of reductions in precipitation
-fauna_div_inc_m0_filter<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=diversity_inc_filtered)#null model
-#this shows a 6% increase in diversity with precipitation decreases
+fauna_div_inc_m0_filter<-rma.mv(lnrr_laj,v_lnrr_laj,random=~1|Site_ID/Study_ID,data=diversity_inc_filtered)#null model
+#this shows a 4% reduction in diversity with precipitation decreases
 
 #run sensitivity analysis based on critical appraisal quality
 diversity_inc_appraisal<-diversity_inc%>%
   filter(Validity!="Low validity")
 
-fauna_div_inc_m0_no_low<-rma.mv(yi,vi,random=~1|Site_ID/Study_ID,data=diversity_inc_appraisal)#model with no low validity studies
-#not much change in estimate here
+fauna_div_inc_m0_no_low<-rma.mv(lnrr_laj,v_lnrr_laj,random=~1|Site_ID/Study_ID,data=diversity_inc_appraisal)#model with no low validity studies
+#similar reduction in effect size here
+
+#studies with lower robustness tended to have a lower increase in precipitation
+ggplot(diversity_inc,aes(x=Validity,y=perc_annual_dist))+
+  geom_violin()
 
 #put all this information into a table
 #info to include - estimate, se, p val, Q result, I squared
@@ -210,11 +210,22 @@ for (i in 1:3){
   qe<-model_list[[i]]$QE
   qe_p<-model_list[[i]]$QEp
   I2<-I2_multi(model_list[[i]])
-  sens_temp<-data.frame(model_type=model_type[i],params,qe,qe_p,I2)
+  sens_temp<-data.frame(disturbance="Precipitation increase",outcome="Alpha diversity",
+                        model_type=model_type[i],params,qe,qe_p,I2)
   div_inc_sensitivity_summary<-rbind(div_inc_sensitivity_summary,sens_temp)
 }
 
 
+#combine tables of sensitivity analyses into one big table
+
+sensitivity_results<-rbind(ab_dec_sensitivity_summary,sensitivity_summary_ab_inc,div_red_sensitivity_summary,div_inc_sensitivity_summary)
+
+
+sensitivity_table <- sensitivity_results%>%
+                     mutate(across(where(is.numeric), round, 3))%>%
+                     gt()
+
+sensitivity_table%>%gtsave("figures/for_paper/summary_sensitivity_table.docx")
 
 #---------------------------------------------------
 #3. Plot figures 
@@ -224,9 +235,11 @@ for (i in 1:3){
 
 #make my own version of the plots
 #bring together predictions from the different models
-abun_preds<-distinct(data.frame(predict(fauna_ab_m1_filtered)))
-div_preds<-distinct(data.frame(predict(fauna_div_m1_filtered)))
-comb_preds<-rbind(abun_preds,div_preds)
+abun_inc_preds<-distinct(data.frame(predict(fauna_ab_red_m0)))
+abun_dec_preds<-distinct(data.frame(predict(fauna_ab_inc_m0)))
+div_inc_preds<-distinct(data.frame(predict(fauna_div_red_m0)))
+div_dec_preds<-distinct(data.frame(predict(fauna_div_inc_m0)))
+comb_preds<-rbind(abun_inc_preds,abun_dec_preds,div_inc_preds,div_dec_preds)
 comb_preds_2<-data.frame(disturbance=rep(c("Precipitation\nreduction","Precipitation\nincrease"),2),
            outcome=rep(c("Abundance","Alpha diversity"),each=2),
            comb_preds)
@@ -240,21 +253,18 @@ comb_preds_2<-comb_preds_2%>%
          per_pi.ub=(exp(pi.ub)-1)*100)
 
 #organise data into one dataset
-abundance_filtered2<-abundance_filtered%>%
-  select(-cooks_ab_1)
-diversity_filtered2<-diversity_filtered%>%
-  select(-cooks_div_1)
-fauna_filtered<-rbind(abundance_filtered2,diversity_filtered2)
+
+fauna_data<-rbind(abundance,diversity)
 
 #relabel disturbance types
-fauna_filtered<-fauna_filtered%>%
+fauna_data<-fauna_data%>%
   mutate(disturbance=if_else(disturbance_type=="drought","Precipitation\nreduction","Precipitation\nincrease"),
          outcome=if_else(broad_outcome=="abundance","Abundance","Alpha diversity"))
 
 #make my own orchard plot
 ggplot()+
   geom_vline(xintercept = 0,lty=2,size=1)+
-  geom_quasirandom(data=fauna_filtered,aes(x=yi,y=disturbance,colour=outcome,group=outcome,size=1/vi),
+  geom_quasirandom(data=fauna_data,aes(x=lnrr_laj,y=disturbance,colour=outcome,group=outcome,size=1/v_lnrr_laj),
                    dodge.width = 1,alpha=0.5)+
   geom_errorbarh(data=comb_preds_2,aes(y=disturbance,xmin=pi.lb,xmax=pi.ub,group=outcome),
                  position=position_dodge(width=1),size=1.5,height=0,colour="black",alpha=0.5)+
@@ -274,14 +284,15 @@ ggsave("figures/for_paper/abun_div_summary.png",width = 20,height = 14,units = "
   
 
 #alternative facetted version of the figure
-ggplot()+
+facet_summary_plot<-ggplot()+
   geom_vline(xintercept = 0,lty=2,size=1)+
-  geom_quasirandom(data=fauna_filtered,aes(x=yi,y=disturbance,colour=disturbance,group=outcome,size=1/vi),
-                   dodge.width = 1,alpha=0.5)+
+  geom_quasirandom(data=subset(fauna_data,lnrr_laj<2.5),
+                   aes(x=lnrr_laj,y=disturbance,colour=disturbance,group=outcome,size=1/v_lnrr_laj),
+                   dodge.width = 0.01,alpha=0.5)+
   geom_errorbarh(data=comb_preds_2,aes(y=disturbance,xmin=pi.lb,xmax=pi.ub),
-                 position=position_dodge(width=1),size=1.5,height=0,colour="black",alpha=0.8)+
+                 position=position_dodge(width=1),size=1,height=0,colour="black",alpha=0.8)+
   geom_errorbarh(data=comb_preds_2,aes(xmin=ci.lb,xmax=ci.ub,y=disturbance),
-                 position=position_dodge(width=1),size=3,height=0,colour="black",alpha=0.8)+
+                 position=position_dodge(width=1),size=2,height=0,colour="black",alpha=0.8)+
   geom_point(data=comb_preds_2,aes(x=pred,y=disturbance,colour=disturbance,fill=disturbance),
              position=position_dodge(width=1),size=4,shape=21,colour="black")+
   theme_cowplot()+
@@ -289,12 +300,50 @@ ggplot()+
   scale_fill_manual("Outcome type",values = c("#fde725","#1f9e89"))+
   scale_color_manual("Outcome type",values = c("#fde725","#1f9e89"))+
   scale_size_continuous(range = c(1,10))+
-  labs(y="Disturbance type",x="Soil and litter fauna relative to\nno disturbance (log response ratio)")+
+  labs(y="Disturbance type",x="Soil and litter fauna relative to no disturbance (log response ratio)")+
   guides(size = "none")+
   theme(text=element_text(size=12),
         axis.text=element_text(size=10),
         legend.position = "bottom",
         legend.justification = "centre")
+
+#create data for the labelling using number of studies and number of comparisons
+studies_label<-fauna_data%>%
+  group_by(disturbance,outcome)%>%
+  summarise(k_count=length(lnrr_laj),
+            studies=n_distinct(Study_ID),
+            studies_annotation=paste("k = ",k_count," (",studies,")",sep=""))
+studies_label$lnrr_laj<-c(-3,-0.6,-3,-0.6)
+
+#create data for labelling using effect sizes in percentages etc
+effect_size_label<-comb_preds_2%>%
+            mutate(perc_change=round(perc_pred,0),
+            change_label=if_else(perc_change<0,
+                                 paste(perc_change,"%",sep=""),
+                                 paste("+",perc_change,"%",sep="")))
+effect_size_label$lnrr_laj<-c(1.3,1.3,0.4,0.4)
+
+#add these to the plot
+facet_summary_plot_with_label1<-facet_summary_plot+
+  geom_text(data=studies_label,
+            aes(x=lnrr_laj,
+                y=disturbance,
+                label=studies_annotation),
+                hjust   = 0.3,
+                vjust   = -4)
+
+
+facet_summary_plot_with_label1+
+  geom_text(data=effect_size_label,
+            aes(x=lnrr_laj,
+                y=disturbance,
+                label=change_label),
+            hjust   = 0,
+            vjust   = -4)
+
+
+ggsave("figures/for_paper/abun_div_summary_facet.pdf",width = 20,height = 14,units = "cm",dpi = 300)
+
 ggsave("figures/for_paper/abun_div_summary_facet.png",width = 20,height = 14,units = "cm",dpi = 300)
 
 

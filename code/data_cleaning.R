@@ -76,6 +76,11 @@ fact_table<-fact_table%>%
 fact_table$Study_ID<-ifelse(fact_table$Study_ID=="Aupic-Samain_2021a","Aupic_Samain_2021a",fact_table$Study_ID)
 fact_table$study_year<-parse_number(fact_table$Study_ID,trim_ws = TRUE)
 
+
+fact_table%>%
+  group_by(broad_outcome,disturbance_type)%>%
+  summarise(no_comp=length(control_av))
+
 ##############################################
 #I need to sort this part out################
 #############################################
@@ -107,6 +112,13 @@ fact_table<-fact_table%>%
          logRR_var=pooled_SD_to_use*((1/(dist_n*(disturbance_av^2)))+(1/(control_n*(control_av^2)))))
 
 
+#impute missing sample sizes for studies using median values for control and treatment groups
+med_control_n<-median(fact_table$control_n,na.rm = TRUE)
+med_dist_n<-median(fact_table$dist_n,na.rm = TRUE)
+
+fact_table<-fact_table%>%
+  mutate(control_n=if_else(is.na(control_n),med_control_n,control_n),
+         dist_n=if_else(is.na(dist_n),med_dist_n,dist_n))
 
 #use the recommended method of Nakagawa et al for calculation of variance
 #based on scripts from https://alistairmcnairsenior.github.io/Miss_SD_Sim/
