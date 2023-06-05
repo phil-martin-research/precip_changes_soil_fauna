@@ -10,7 +10,7 @@ library(metafor)
 library(tidyr)
 
 #read in .csv file with soil fauna data
-crit_appraisal<- read_csv("data/critical_appraisal.csv")
+crit_appraisal<- read_csv("data/critical_appraisal_2023_05_29.csv")
 sites<- read_csv("data/site_data_2023_05_29.csv")
 fact_table<- read_csv("data/fact_table_2023_05_29.csv")
 taxonomy<- read_csv("data/taxonomy.csv")
@@ -90,7 +90,6 @@ z_crit <- qnorm(1 - alpha / 2)
 
 fact_table<-fact_table%>%
   mutate(exact_p_val=as.numeric(exact_p_val),
-         exact_p_z_value=ifelse(exact_p_val<=alpha/2,-abs(qnorm(exact_p_val)),abs(qnorm(exact_p_val))),
          approx_p_value_numeric=ifelse(approx_p_val==">0.1",median(c(1,0.1)),NA),
          approx_p_value_numeric=ifelse(approx_p_val==">0.09",median(c(1,0.09)),approx_p_value_numeric),
          approx_p_value_numeric=ifelse(approx_p_val==">0.08",median(c(1,0.08)),approx_p_value_numeric),
@@ -100,31 +99,24 @@ fact_table<-fact_table%>%
          approx_p_value_numeric=ifelse(approx_p_val=="<0.1",0.1,approx_p_value_numeric),
          approx_p_value_numeric=ifelse(approx_p_val=="<0.5",0.05,approx_p_value_numeric),
          approx_p_value_numeric=ifelse(approx_p_val=="<0.01",0.01,approx_p_value_numeric),
-         approx_p_value_numeric=ifelse(approx_p_val=="<0.001",0.001,approx_p_value_numeric),
-         approx_p_z_value=ifelse(approx_p_value_numeric<=alpha/2,-abs(qnorm(approx_p_value_numeric)),abs(qnorm(approx_p_value_numeric))),
-         var_from_z_and_n=ifelse(!is.na(exact_p_z_value)&!is.na(dist_n)&!is.na(control_n),
-                                  (exact_p_z_value^2)/(dist_n+control_n),NA),
-         var_from_z_and_n=ifelse(is.na(var_from_z_and_n)&!is.na(approx_p_z_value)&!is.na(dist_n)&!is.na(control_n),
-                                  (approx_p_z_value^2)/(dist_n+control_n),NA))
+         approx_p_value_numeric=ifelse(approx_p_val=="<0.001",0.001,approx_p_value_numeric))
+
+
+#back calculate the pooled SD from means, group sizes, and the p-value based on this 
+#code from wolfgang https://gist.github.com/wviechtb/3834b707caf50948f15c314d2a26a84c
+
+
+fact_table<-fact_table%>%
+  mutate(exact_tval=qt(exact_p_val/2, df=control_n+dist_n-2, lower.tail=FALSE),
+         exact_pooled_SD=abs((disturbance_av - control_av) / (exact_tval * sqrt(1/dist_n + 1/control_n))),
+         approx_tval=qt(approx_p_value_numeric/2, df=control_n+dist_n-2, lower.tail=FALSE),
+         approx_pooled_SD=abs((disturbance_av - control_av) / (approx_tval * sqrt(1/dist_n + 1/control_n))),
+         pooled_SD_to_use=if_else(!is.na(exact_pooled_SD),exact_pooled_SD,approx_pooled_SD),
+         logRR_var=pooled_SD_to_use*((1/(dist_n*(disturbance_av^2)))+(1/(control_n*(control_av^2)))))
 
 
 
-if (p <= alpha / 2) {
-  z <- -abs(qnorm(p))
-} else {
-  z <- abs(qnorm(p))
-}
-
-#first based on exact p values
-
-#calculate upper bound
-(1-as.numeric(fact_table$exact_p_val))*100
-
-
-
-#########################################
-#below here is fine######################
-#########################################
+#use the recommended method of Nakagawa et al for calculation of variance
 
 
 
@@ -145,6 +137,13 @@ fact_table<-fact_table%>%
 #calculate log response ratio
 soil_fauna_rr<- escalc(m2i = control_av, m1i = disturbance_av, n2i = control_n, n1i = dist_n,
                        sd2i = control_SD, sd1i = dist_SD,  measure = "ROM", data = fact_table)
+
+
+ggplot(soil_fauna_rr,aes(vi,logRR_var))+
+  geom_point()+
+  geom_abline()+
+  scale_x_continuous(trans = "log")+
+  scale_y_continuous(trans = "log")
 
 #add variable for the standard error of each effect size for publication bias analysis
 soil_fauna_rr$sei <- sqrt(soil_fauna_rr$vi)
