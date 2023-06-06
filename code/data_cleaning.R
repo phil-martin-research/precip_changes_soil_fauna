@@ -5,13 +5,12 @@
 
 rm(list = ls())
 
-pacman::p_load(tidyverse,metafor,tidyr,here,patchwork)
-
+pacman::p_load(tidyverse,metafor,tidyr,here,patchwork,dplyr)
 
 #read in .csv file with soil fauna data
 crit_appraisal<- read_csv("data/critical_appraisal_2023_05_29.csv")
 sites<- read_csv("data/site_data_2023_05_29.csv")
-fact_table<- read_csv("data/fact_table_2023_06_02.csv")
+fact_table<- read_csv("data/fact_table_2023_06_06.csv")
 taxonomy<- read_csv("data/taxonomy.csv")
 body_length<- read_csv("data/body_length.csv")
 body_width<- read_csv("data/body_width.csv")
@@ -34,10 +33,10 @@ fact_table <- fact_table %>%
     perc_annual_dist=if_else(perc_annual_dist>100, perc_annual_dist-100, perc_annual_dist*(-1)),
     perc_during_dist=if_else(perc_during_dist>100, perc_during_dist-100, perc_during_dist*(-1)),
     #convert SE to SD
-    control_SD=if_else(var_type=="SE", control_var*sqrt(control_n), control_var),
-    dist_SD=if_else(var_type=="SE",dist_var*sqrt(dist_n), dist_var)
-  )
-
+    control_SD=ifelse(var_type=="SE", control_var*sqrt(control_n), control_var),
+    dist_SD=ifelse(var_type=="SE",dist_var*sqrt(dist_n), dist_var))%>%
+  filter(is_subset == FALSE) #subset to remove data that represents a subset of other data
+#we have 384 rows here
 
 #join with data from sites and from critical appraisal
 fact_table<-fact_table%>%
@@ -54,9 +53,6 @@ col_details<-data.frame(col_name=names(fact_table),
 
 fact_table<-select(fact_table,-c(9,10,15,16,21,22,30,33:35,39:48,52:73,75:80,82:91,93:101,103:106,108:109,111:116))
 
-#subset to remove data that represents a subset of other data
-fact_table <- filter(fact_table, is_subset == FALSE)
-
 #check to see if any of the means are equal to zero
 #control group
 fact_table%>%
@@ -67,8 +63,8 @@ fact_table%>%
   group_by(disturbance_av)%>%
   summarise(length(disturbance_av))
 
-#there are only 19 data points where control or disturbance mean are equal to 0
-#so we will exclude these
+#there are only 10 data points where control or disturbance mean are equal to 0
+#so we will exclude these - leaving us with 374 rows
 fact_table<-fact_table%>%
   filter(control_av>0&disturbance_av>0)
 
@@ -79,7 +75,13 @@ fact_table$study_year<-parse_number(fact_table$Study_ID,trim_ws = TRUE)
 
 fact_table%>%
   group_by(broad_outcome,disturbance_type)%>%
-  summarise(no_comp=length(control_av))
+  summarise(no_comp=length(control_av),
+            min_change=min(perc_annual_dist,na.rm = TRUE),
+            max_change=max(perc_annual_dist,na.rm = TRUE))
+
+ggplot(fact_table,aes(x=perc_annual_dist))+
+  geom_histogram()+
+  facet_grid(broad_outcome~disturbance_type)
 
 ##############################################
 #I need to sort this part out################
@@ -95,7 +97,7 @@ fact_table<-fact_table%>%
          approx_p_value_numeric=ifelse(approx_p_val==">0.06",median(c(1,0.06)),approx_p_value_numeric),
          approx_p_value_numeric=ifelse(approx_p_val==">0.05",median(c(1,0.05)),approx_p_value_numeric),
          approx_p_value_numeric=ifelse(approx_p_val=="<0.1",0.1,approx_p_value_numeric),
-         approx_p_value_numeric=ifelse(approx_p_val=="<0.5",0.05,approx_p_value_numeric),
+         approx_p_value_numeric=ifelse(approx_p_val=="<0.05",0.05,approx_p_value_numeric),
          approx_p_value_numeric=ifelse(approx_p_val=="<0.01",0.01,approx_p_value_numeric),
          approx_p_value_numeric=ifelse(approx_p_val=="<0.001",0.001,approx_p_value_numeric))
 
@@ -111,14 +113,6 @@ fact_table<-fact_table%>%
          pooled_SD_to_use=if_else(!is.na(exact_pooled_SD),exact_pooled_SD,approx_pooled_SD),
          logRR_var=pooled_SD_to_use*((1/(dist_n*(disturbance_av^2)))+(1/(control_n*(control_av^2)))))
 
-
-#impute missing sample sizes for studies using median values for control and treatment groups
-med_control_n<-median(fact_table$control_n,na.rm = TRUE)
-med_dist_n<-median(fact_table$dist_n,na.rm = TRUE)
-
-fact_table<-fact_table%>%
-  mutate(control_n=if_else(is.na(control_n),med_control_n,control_n),
-         dist_n=if_else(is.na(dist_n),med_dist_n,dist_n))
 
 #use the recommended method of Nakagawa et al for calculation of variance
 #based on scripts from https://alistairmcnairsenior.github.io/Miss_SD_Sim/
@@ -167,7 +161,6 @@ fact_table <- fact_table %>%
 
 # We need to exclude some missing data in the raw data set and data that is not defined on the ratio scale.
 fact_table <- fact_table %>% filter(!is.infinite(lnrr_laj) & !is.na(lnrr_laj))
-#this loses quite a lot of rows, we need to see what's going on here
 
 #calculate log response ratio
 soil_fauna_rr<- escalc(m2i = control_av, m1i = disturbance_av, n2i = control_n, n1i = dist_n,
@@ -178,7 +171,15 @@ ggplot(soil_fauna_rr,aes(yi,lnrr_laj))+
   geom_point()+
   geom_abline()
 
-#the similarlity of the two effect sizes is very high
+soil_fauna_rr$rr_diff<-(abs(as.numeric(soil_fauna_rr$yi)-soil_fauna_rr$lnrr_laj))
+
+
+ggplot(soil_fauna_rr,aes(rr_diff))+
+  geom_histogram()+
+  facet_wrap(~geary_test)
+
+#the similarity of the two effect sizes is very high - need to work out where the deviations come from though
+#it looks like they come from the comparisons that fail the geary test, we will test the impact of including these later
 
 
 #add variable for the standard error of each effect size for publication bias analysis
@@ -190,7 +191,6 @@ soil_fauna_rr$e_n<-with(soil_fauna_rr,(4*(control_n*dist_n)) / (control_n + dist
 #calculate the inverse of the "effective sample size" to account for unbalanced sampling for publication bias analysis
 soil_fauna_rr$inv_n_tilda <-with(soil_fauna_rr, (control_n + dist_n)/(control_n*dist_n))
 soil_fauna_rr$sqrt_inv_n_tilda <- with(soil_fauna_rr, sqrt(inv_n_tilda))
-
 
 #subset dataset to get variables of interest
 # All abundance 
@@ -210,6 +210,7 @@ write.csv(fauna_ab_red, "data/abundance_red_data.csv")
 write.csv(fauna_ab_inc, "data/abundance_inc_data.csv")
 write.csv(fauna_div_red, "data/diversity_red_data.csv")
 write.csv(fauna_div_inc, "data/diversity_inc_data.csv")
+
 
 ##################################################################
 #2- format spatial data###########################################

@@ -42,6 +42,15 @@ diversity<-read_csv("data/diversity_data.csv")
 ########################################
 
 fauna_ab_red_m0<-rma.mv(lnrr_laj,v_lnrr_laj,random=~1|Site_ID/Study_ID,data=abundance_red)#null model
+#35% reduction in abundance
+
+#remove comparisons that fail geary's test
+abundance_red_no_geary<-abundance_red%>%
+  mutate(geary_test=if_else(is.na(geary_test),"Not needed",geary_test))%>%
+  filter(geary_test!="fail")
+
+fauna_ab_red_m0_no_geary<-rma.mv(lnrr_laj,v_lnrr_laj,random=~1|Site_ID/Study_ID,data=abundance_red_no_geary)#null model
+#32% reduction in abundance
 
 #calculate cook distances
 cooks_ab_red_0<-cooks.distance(fauna_ab_red_m0)
