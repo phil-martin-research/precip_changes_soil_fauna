@@ -2,8 +2,7 @@
 
 rm(list = ls())
 
-
-pacman::p_load(tidyverse,metafor,cowplot,orchaRd,ggbeeswarm,tidyr,ggthemes,sp,broom)
+pacman::p_load(tidyverse,metafor,cowplot,orchaRd,ggbeeswarm,tidyr,ggthemes,sp,broom,lemon)
 
 #read in .csv files with soil fauna data
 abundance<- read_csv("data/abundance_data.csv")
@@ -171,12 +170,12 @@ ggplot(aes(x=perc_annual_dist,y=pred,colour=Functional_group_size,fill=Functiona
   geom_line()+
   geom_ribbon(alpha=0.25,aes(ymax=ci.ub,ymin=ci.lb),colour=NA)+
   geom_ribbon(alpha=0.25,aes(ymax=pi.ub,ymin=pi.lb),colour=NA)+
-  facet_wrap(~Functional_group_size)+
+  facet_rep_wrap(~Functional_group_size,repeat.tick.labels = TRUE)+
   geom_point(data=abundance_sub,aes(x=perc_annual_dist,y=lnrr_laj,size=1/v_lnrr_laj),alpha=0.25)+
-  xlab("change in annual precipitation (%)")+
-  ylab("change in soil fauna abundance (log ratio)")+
-  scale_color_manual(values = c("#a6cee3","#1f78b4","#b2df8a"))+
-  scale_fill_manual(values = c("#a6cee3","#1f78b4","#b2df8a"))+
+  xlab("Change in annual precipitation (%)")+
+  ylab("Change in soil fauna abundance (log ratio)")+
+  scale_color_manual(values = c("#02475f","#c3386b","#e0b500"))+
+  scale_fill_manual(values = c("#02475f","#c3386b","#e0b500"))+
   theme(legend.position = "none")+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
           panel.background = element_blank(), axis.line = element_line(colour = "black"))+
