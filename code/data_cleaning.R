@@ -9,8 +9,8 @@ pacman::p_load(tidyverse,metafor,tidyr,here,patchwork,dplyr)
 
 #read in .csv file with soil fauna data
 crit_appraisal<- read_csv("data/critical_appraisal_2023_05_29.csv")
-sites<- read_csv("data/site_data_2023_05_29.csv")
-fact_table<- read_csv("data/fact_table_2023_06_06.csv")
+sites<- read_csv("data/site_data_2023_06_07.csv")
+fact_table<- read_csv("data/fact_table_2023_06_07.csv")
 taxonomy<- read_csv("data/taxonomy.csv")
 body_length<- read_csv("data/body_length.csv")
 body_width<- read_csv("data/body_width.csv")
@@ -36,22 +36,20 @@ fact_table <- fact_table %>%
     control_SD=ifelse(var_type=="SE", control_var*sqrt(control_n), control_var),
     dist_SD=ifelse(var_type=="SE",dist_var*sqrt(dist_n), dist_var))%>%
   filter(is_subset == FALSE) #subset to remove data that represents a subset of other data
-#we have 384 rows here
+#we have 387 rows here
 
 #join with data from sites and from critical appraisal
 fact_table<-fact_table%>%
   left_join(sites,"Site_ID")%>%
-  left_join(crit_appraisal,"Study_ID")%>%
-  left_join(taxonomy,"Highest_taxonomic_resolution")%>%
-  left_join(body_length, by=c('body_length'='Taxonomy'))%>%
-  left_join(body_width, by=c('body_width'='Taxonomy'))
-
+  select(-c(Study_ID.y))%>%
+  rename(Study_ID=Study_ID.x)%>%
+  left_join(crit_appraisal,by="Study_ID")
 
 #remove columns that we don't use 
 col_details<-data.frame(col_name=names(fact_table),
-                        col_index=seq(1,116))
+                        col_index=seq(1,129))
 
-fact_table<-select(fact_table,-c(9,10,15,16,21,22,30,33:35,39:48,52:73,75:80,82:91,93:101,103:106,108:109,111:116))
+fact_table<-select(fact_table,-c(9,10,18,19,22,23,33,35:67,69:77,79:86,89,91:110,117:124))
 
 #check to see if any of the means are equal to zero
 #control group
@@ -69,19 +67,7 @@ fact_table<-fact_table%>%
   filter(control_av>0&disturbance_av>0)
 
 #extract year of study
-fact_table$Study_ID<-ifelse(fact_table$Study_ID=="Aupic-Samain_2021a","Aupic_Samain_2021a",fact_table$Study_ID)
 fact_table$study_year<-parse_number(fact_table$Study_ID,trim_ws = TRUE)
-
-
-fact_table%>%
-  group_by(broad_outcome,disturbance_type)%>%
-  summarise(no_comp=length(control_av),
-            min_change=min(perc_annual_dist,na.rm = TRUE),
-            max_change=max(perc_annual_dist,na.rm = TRUE))
-
-ggplot(fact_table,aes(x=perc_annual_dist))+
-  geom_histogram()+
-  facet_grid(broad_outcome~disturbance_type)
 
 ##############################################
 #I need to sort this part out################
