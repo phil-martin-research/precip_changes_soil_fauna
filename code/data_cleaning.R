@@ -5,12 +5,12 @@
 
 rm(list = ls())
 
-pacman::p_load(tidyverse,metafor,tidyr,here,patchwork,dplyr)
+pacman::p_load(tidyverse,metafor,tidyr,here,patchwork,dplyr,raster)
 
 #read in .csv file with soil fauna data
 crit_appraisal<- read_csv("data/critical_appraisal_2023_05_29.csv")
 sites<- read_csv("data/site_data_2023_06_07.csv")
-fact_table<- read_csv("data/fact_table_2023_06_07.csv")
+fact_table<- read_csv("data/fact_table_2023_06_09.csv")
 taxonomy<- read_csv("data/taxonomy.csv")
 body_length<- read_csv("data/body_length.csv")
 body_width<- read_csv("data/body_width.csv")
@@ -19,6 +19,13 @@ body_width<- read_csv("data/body_width.csv")
 #---------------------------------------------------
 #1 - format datasets for meta-analysis
 #---------------------------------------------------
+
+#join with data from sites and from critical appraisal
+fact_table<-fact_table%>%
+  left_join(sites,"Site_ID")%>%
+  dplyr::select(-Study_ID.y)%>%
+  rename(Study_ID=Study_ID.x)%>%
+  left_join(crit_appraisal,by="Study_ID")
 
 #clean dataset
 fact_table <- fact_table %>%
@@ -34,22 +41,17 @@ fact_table <- fact_table %>%
     perc_during_dist=if_else(perc_during_dist>100, perc_during_dist-100, perc_during_dist*(-1)),
     #convert SE to SD
     control_SD=ifelse(var_type=="SE", control_var*sqrt(control_n), control_var),
-    dist_SD=ifelse(var_type=="SE",dist_var*sqrt(dist_n), dist_var))%>%
-  filter(is_subset == FALSE) #subset to remove data that represents a subset of other data
-#we have 387 rows here
-
-#join with data from sites and from critical appraisal
-fact_table<-fact_table%>%
-  left_join(sites,"Site_ID")%>%
-  select(-c(Study_ID.y))%>%
-  rename(Study_ID=Study_ID.x)%>%
-  left_join(crit_appraisal,by="Study_ID")
+    dist_SD=ifelse(var_type=="SE",dist_var*sqrt(dist_n), dist_var),
+    lat=if_else(is.na(Lat_dec_deg),Latitude_deg+(Latitude_min/60)+(Latitude_sec/3600),Lat_dec_deg),
+    lon=if_else(is.na(Lon_dec_deg),Longitude_deg+(Longitude_min/60)+(Longitude_sec/3600),Lon_dec_deg),
+    trophic_to_use=if_else(is.na(trophic_group),trophic_assigned,trophic_group))
+#we have 661 rows here
 
 #remove columns that we don't use 
 col_details<-data.frame(col_name=names(fact_table),
-                        col_index=seq(1,129))
+                        col_index=seq(1,130))
 
-fact_table<-select(fact_table,-c(9,10,18,19,22,23,33,35:67,69:77,79:86,89,91:110,117:124))
+fact_table<-dplyr::select(fact_table,-c(16,17,20,21,33,35:75,77:85,87:106,113:120))
 
 #check to see if any of the means are equal to zero
 #control group
@@ -62,16 +64,17 @@ fact_table%>%
   summarise(length(disturbance_av))
 
 #there are only 10 data points where control or disturbance mean are equal to 0
-#so we will exclude these - leaving us with 374 rows
+#so we will exclude these - leaving us with 646 rows
 fact_table<-fact_table%>%
   filter(control_av>0&disturbance_av>0)
 
 #extract year of study
 fact_table$study_year<-parse_number(fact_table$Study_ID,trim_ws = TRUE)
 
-##############################################
-#I need to sort this part out################
-#############################################
+################################################
+#2 - data imputation############################
+################################################
+
 
 #work out exact or approximate p values
 fact_table<-fact_table%>%
@@ -177,6 +180,21 @@ soil_fauna_rr$e_n<-with(soil_fauna_rr,(4*(control_n*dist_n)) / (control_n + dist
 #calculate the inverse of the "effective sample size" to account for unbalanced sampling for publication bias analysis
 soil_fauna_rr$inv_n_tilda <-with(soil_fauna_rr, (control_n + dist_n)/(control_n*dist_n))
 soil_fauna_rr$sqrt_inv_n_tilda <- with(soil_fauna_rr, sqrt(inv_n_tilda))
+
+
+###################################################################
+#3 - add aridity data##############################################
+###################################################################
+
+
+aridity_index<-raster("data/spatial_data/aridity/Global-AI_ET0_v3_annual/ai_v3_yr.tif")
+
+
+
+
+
+
+
 
 #subset dataset to get variables of interest
 # All abundance 

@@ -28,40 +28,27 @@ ggplot(abundance,aes(perc_annual_dist,lnrr_laj))+
   facet_wrap(~Functional_group_size)
 
 ###############################################################################
-#1 - imputation of missing values for precipitation change######################
+#1 - data tidying##############################################################
 ###############################################################################
-
-sum(is.na(abundance$perc_annual_dist))
-#fifty three values are missing for the magnitude of precipitation change, so we can impute the median value
-#for studies of reduction and increases in precipitation
-
-abundance%>%
-  group_by(disturbance_type,Study_ID)%>%
-  summarise(med_mag_study=median(perc_annual_dist,na.rm=TRUE))%>%
-  group_by(disturbance_type)%>%
-  summarise(med_mag=median(med_mag_study,na.rm=TRUE))
-#impute these values
-abundance<-abundance%>%
-  mutate(perc_annual_dist_type=if_else(!is.na(perc_annual_dist),"not_imputed","NA"),
-         perc_annual_dist=if_else(is.na(perc_annual_dist)&disturbance_type=="drought",-35,perc_annual_dist),
-         perc_annual_dist_type=if_else(is.na(perc_annual_dist)&disturbance_type=="drought","imputed",perc_annual_dist_type),
-         perc_annual_dist=if_else(is.na(perc_annual_dist)&disturbance_type=="precip_inc",31.6,perc_annual_dist),
-         perc_annual_dist_type=if_else(is.na(perc_annual_dist)&disturbance_type=="precip_inc","imputed",perc_annual_dist_type),
-         )
-
 
 #complete cases for the variable about percentage change in precipitation and body size
 abundance_complete<-abundance[complete.cases(abundance$perc_annual_dist,abundance$Functional_group_size),]
-#we lose 30 comparisons for abundance
+#we lose 10 comparisons for abundance
 diversity_complete<-diversity[complete.cases(diversity$perc_annual_dist,diversity$Functional_group_size),]
-#we lose 4 comparisons for diversity
+#we lose 7 comparisons for diversity
+
+#classify taxa as collembola or non-collembola
+abundance_complete$collembola<-ifelse(abundance_complete$Highest_taxonomic_resolution=="Collembola","Collembola","Non-Collembola")
+
+#subset to only include non-collembola
+abundance_complete_non_coll<-filter(abundance_complete,collembola=="Non-Collembola")
 
 ###############################################################################
 #1 - models of heterogeneity in response of abundance of soil and litter fauna#
 ###############################################################################
 
 #first a saturated model including all potential predictors
-M_sat_abun<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~aridity+perc_annual_dist+Functional_group_size+above_below+av_width,random=~1|Site_ID/Study_ID,data=abundance_complete)
+M_sat_abun<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~aridity+perc_annual_dist+Functional_group_size+above_below,random=~1|Site_ID/Study_ID,data=abundance_complete)
 #use cooks distance to identify influential points
 cooks_sat_abun<-cooks.distance(M_sat_abun)
 #filter out high cooks distances for saturated model and then run all models
@@ -74,8 +61,13 @@ M1<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist ,random=~1|Site_ID/Study
 M2<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*aridity,random=~1|Site_ID/Study_ID,data=abundance_complete)
 M3<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*Functional_group_size,random=~1|Site_ID/Study_ID,data=abundance_complete)
 M4<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*above_below,random=~1|Site_ID/Study_ID,data=abundance_complete)
-M5<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*Functional_group_size,random=~1|Site_ID/Study_ID,data=abundance_complete)
-M6<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*log(av_width),random=~1|Site_ID/Study_ID,data=abundance_complete)
+M5<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*Functional_group_size+above_below,random=~1|Site_ID/Study_ID,data=abundance_complete)
+
+
+M4_no_coll<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*above_below,random=~1|Site_ID/Study_ID,data=abundance_complete_non_coll)
+
+M4
+M4_no_coll
 
 
 vif(M1)
@@ -83,23 +75,20 @@ vif(M2)
 vif(M3)
 vif(M4)
 vif(M5)
-vif(M6)
 
-#centre perc_annual_dist, aridity and av_width
+AIC(M1,M2,M3,M4,M5)
 
+#centre perc_annual_dist and aridity
 abundance_complete$perc_annual_dist_centred<-abundance_complete$perc_annual_dist-mean(abundance_complete$perc_annual_dist)
-abundance_complete$aridity_centred<-abundance_complete$aridity-mean(abundance_complete$aridity)
-abundance_complete$av_width_centred<-abundance_complete$av_width-mean(abundance_complete$av_width)
+abundance_complete$aridity_centred<-abundance_complete$aridity-mean(abundance_complete$aridity,na.rm=TRUE)
 
 #rerun models with new centred variables
 M0<-rma.mv(lnrr_laj,v_lnrr_laj,random=~1|Site_ID/Study_ID,data=abundance_complete,method="ML")
 M1<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist_centred ,random=~1|Study_ID/Site_ID,data=abundance_complete,method="ML")
 M2<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist_centred*aridity_centred,random=~1|Study_ID/Site_ID,data=abundance_complete,method="ML")
-M3<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist_centred*Functional_group_size-1,random=~1|Study_ID/Site_ID,data=abundance_complete,method="ML")
+M3<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist_centred*Functional_group_size,random=~1|Study_ID/Site_ID,data=abundance_complete,method="ML")
 M4<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist_centred*above_below,random=~1|Study_ID/Site_ID,data=abundance_complete,method="ML")
-M5<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist_centred*log(av_width),random=~1|Study_ID/Site_ID,data=abundance_complete,method="ML")
-M6<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist_centred*av_width,random=~1|Study_ID/Site_ID,data=abundance_complete,method="ML")
-M7<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist_centred+I(perc_annual_dist_centred^2),random=~1|Study_ID/Site_ID,data=abundance_complete,method="ML")
+M5<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist_centred*Functional_group_size+I(perc_annual_dist_centred^2)*Functional_group_size,random=~1|Study_ID/Site_ID,data=abundance_complete,method="ML")
 
 
 
@@ -108,11 +97,28 @@ vif(M2)
 vif(M3)
 vif(M4)
 vif(M5)
-vif(M6)
-vif(M7)
+
+ggplot(abundance_complete,aes(perc_annual_dist_centred,lnrr_laj,colour=above_below))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  facet_wrap(~above_below)
 
 
-AIC.rma(M0,M1,M2,M3,M4,M5,M6,M7)
+#calculate cook distances
+cooks_M4<-cooks.distance(M4)
+
+#filter out highly influential comparisons
+abundance_complete_filtered<- abundance_complete %>%cbind(cooks_M4) %>%filter(cooks_M4 < 3.0*mean(cooks_M4,na.rm=TRUE))
+
+M4_filtered<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist_centred*above_below,random=~1|Study_ID/Site_ID,data=abundance_complete_filtered,method="ML")
+
+
+ggplot(abundance_complete_filtered,aes(perc_annual_dist_centred,lnrr_laj,colour=above_below))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  facet_wrap(~above_below)
+
+AIC.rma(M0,M1,M2,M3,M4,M5)
 
 #variance inflation factors all seem good now and M3 is the best model
 
