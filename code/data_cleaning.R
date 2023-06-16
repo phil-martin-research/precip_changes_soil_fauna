@@ -27,6 +27,8 @@ fact_table<-fact_table%>%
   rename(Study_ID=Study_ID.x)%>%
   left_join(crit_appraisal,by="Study_ID")
 
+unique(fact_table$Highest_taxonomic_resolution)
+
 #clean dataset
 fact_table <- fact_table %>%
   mutate(
@@ -44,12 +46,22 @@ fact_table <- fact_table %>%
     dist_SD=ifelse(var_type=="SE",dist_var*sqrt(dist_n), dist_var),
     lat=if_else(is.na(Lat_dec_deg),Latitude_deg+(Latitude_min/60)+(Latitude_sec/3600),Lat_dec_deg),
     lon=if_else(is.na(Lon_dec_deg),Longitude_deg+(Longitude_min/60)+(Longitude_sec/3600),Lon_dec_deg),
-    trophic_to_use=if_else(is.na(trophic_group),trophic_assigned,trophic_group))
+    trophic_to_use=if_else(is.na(trophic_group),trophic_assigned,trophic_group),
+    exoskeleton=if_else(Highest_taxonomic_resolution=="Nematoda"|
+                        Highest_taxonomic_resolution=="Testate amoebae"|
+                        Highest_taxonomic_resolution=="Tylenchidae"|
+                        Highest_taxonomic_resolution=="Criconematidae"|
+                        Highest_taxonomic_resolution=="Aphelenchoididae"|
+                        Highest_taxonomic_resolution=="Aphelenchoididae"|
+                        Highest_taxonomic_resolution=="Cephalobidae"|
+                        Highest_taxonomic_resolution=="Plectidae"|
+                        Highest_taxonomic_resolution=="Qudsianematidae",
+                        "no","yes"))
 #we have 661 rows here
 
 #remove columns that we don't use 
 col_details<-data.frame(col_name=names(fact_table),
-                        col_index=seq(1,130))
+                        col_index=seq(1,131))
 
 fact_table<-dplyr::select(fact_table,-c(16,17,20,21,33,35:75,77:85,87:106,113:120))
 
@@ -74,7 +86,6 @@ fact_table$study_year<-parse_number(fact_table$Study_ID,trim_ws = TRUE)
 ################################################
 #2 - data imputation############################
 ################################################
-
 
 #work out exact or approximate p values
 fact_table<-fact_table%>%
@@ -182,6 +193,8 @@ soil_fauna_rr$inv_n_tilda <-with(soil_fauna_rr, (control_n + dist_n)/(control_n*
 soil_fauna_rr$sqrt_inv_n_tilda <- with(soil_fauna_rr, sqrt(inv_n_tilda))
 
 
+soil_fauna_rr<-as_tibble(soil_fauna_rr)
+
 ###################################################################
 #3 - add aridity data##############################################
 ###################################################################
@@ -189,11 +202,16 @@ soil_fauna_rr$sqrt_inv_n_tilda <- with(soil_fauna_rr, sqrt(inv_n_tilda))
 
 aridity_index<-raster("data/spatial_data/aridity/Global-AI_ET0_v3_annual/ai_v3_yr.tif")
 
+#extract aridity data
+soil_fauna_rr$aridity<-extract(aridity_index,cbind(soil_fauna_rr$lon,soil_fauna_rr$lat))
+#convert to correct units
+soil_fauna_rr$aridity<-soil_fauna_rr$aridity/10000
 
+#remove columns that are not needed
+col_details<-data.frame(col_name=names(soil_fauna_rr),
+                        col_index=seq(1,75))
 
-
-
-
+soil_fauna_rr<-dplyr::select(soil_fauna_rr,-c(7:11,21:25,38:41,43:44,50:60,62:65))
 
 
 #subset dataset to get variables of interest
