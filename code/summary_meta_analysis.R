@@ -56,7 +56,7 @@ fauna_ab_red_m0_no_geary<-rma.mv(lnrr_laj,v_lnrr_laj,random=~1|Site_ID/Study_ID,
 cooks_ab_red_0<-cooks.distance(fauna_ab_red_m0)
 
 #filter out highly influential comparisons
-abundance_red_filtered<- abundance_red %>%cbind(cooks_ab_red_0) %>%filter(cooks_ab_red_0 < 3.0*mean(cooks_ab_red_0,na.rm=TRUE))
+abundance_red_filtered<-abundance_red%>%cbind(cooks_ab_red_0)%>%filter(cooks_ab_red_0 < 3.0*mean(cooks_ab_red_0,na.rm=TRUE))
 #this removed 9 comparisons
 
 #rerun analysis of impact of reductions in precipitation

@@ -10,7 +10,7 @@ pacman::p_load(tidyverse,metafor,tidyr,here,patchwork,dplyr,raster)
 #read in .csv file with soil fauna data
 crit_appraisal<- read_csv("data/critical_appraisal_2023_05_29.csv")
 sites<- read_csv("data/site_data_2023_06_07.csv")
-fact_table<- read_csv("data/fact_table_2023_06_09.csv")
+fact_table<- read_csv("data/fact_table_2023_06_19.csv")
 taxonomy<- read_csv("data/taxonomy.csv")
 body_length<- read_csv("data/body_length.csv")
 body_width<- read_csv("data/body_width.csv")
@@ -26,8 +26,6 @@ fact_table<-fact_table%>%
   dplyr::select(-Study_ID.y)%>%
   rename(Study_ID=Study_ID.x)%>%
   left_join(crit_appraisal,by="Study_ID")
-
-unique(fact_table$Highest_taxonomic_resolution)
 
 #clean dataset
 fact_table <- fact_table %>%
@@ -61,9 +59,9 @@ fact_table <- fact_table %>%
 
 #remove columns that we don't use 
 col_details<-data.frame(col_name=names(fact_table),
-                        col_index=seq(1,131))
+                        col_index=seq(1,133))
 
-fact_table<-dplyr::select(fact_table,-c(16,17,20,21,33,35:75,77:85,87:106,113:120))
+fact_table<-dplyr::select(fact_table,-c(18,19,22,23,33,35:77,79:87,89:108,115:122))
 
 #check to see if any of the means are equal to zero
 #control group
@@ -75,7 +73,7 @@ fact_table%>%
   group_by(disturbance_av)%>%
   summarise(length(disturbance_av))
 
-#there are only 10 data points where control or disturbance mean are equal to 0
+#there are only 19 data points where control or disturbance mean are equal to 0
 #so we will exclude these - leaving us with 646 rows
 fact_table<-fact_table%>%
   filter(control_av>0&disturbance_av>0)
@@ -86,33 +84,6 @@ fact_table$study_year<-parse_number(fact_table$Study_ID,trim_ws = TRUE)
 ################################################
 #2 - data imputation############################
 ################################################
-
-#work out exact or approximate p values
-fact_table<-fact_table%>%
-  mutate(exact_p_val=as.numeric(exact_p_val),
-         approx_p_value_numeric=ifelse(approx_p_val==">0.1",median(c(1,0.1)),NA),
-         approx_p_value_numeric=ifelse(approx_p_val==">0.09",median(c(1,0.09)),approx_p_value_numeric),
-         approx_p_value_numeric=ifelse(approx_p_val==">0.08",median(c(1,0.08)),approx_p_value_numeric),
-         approx_p_value_numeric=ifelse(approx_p_val==">0.07",median(c(1,0.07)),approx_p_value_numeric),
-         approx_p_value_numeric=ifelse(approx_p_val==">0.06",median(c(1,0.06)),approx_p_value_numeric),
-         approx_p_value_numeric=ifelse(approx_p_val==">0.05",median(c(1,0.05)),approx_p_value_numeric),
-         approx_p_value_numeric=ifelse(approx_p_val=="<0.1",0.1,approx_p_value_numeric),
-         approx_p_value_numeric=ifelse(approx_p_val=="<0.05",0.05,approx_p_value_numeric),
-         approx_p_value_numeric=ifelse(approx_p_val=="<0.01",0.01,approx_p_value_numeric),
-         approx_p_value_numeric=ifelse(approx_p_val=="<0.001",0.001,approx_p_value_numeric))
-
-
-#back calculate the pooled SD from means, group sizes, and the p-value based on this 
-#code from wolfgang https://gist.github.com/wviechtb/3834b707caf50948f15c314d2a26a84c
-
-fact_table<-fact_table%>%
-  mutate(exact_tval=qt(exact_p_val/2, df=control_n+dist_n-2, lower.tail=FALSE),
-         exact_pooled_SD=abs((disturbance_av - control_av) / (exact_tval * sqrt(1/dist_n + 1/control_n))),
-         approx_tval=qt(approx_p_value_numeric/2, df=control_n+dist_n-2, lower.tail=FALSE),
-         approx_pooled_SD=abs((disturbance_av - control_av) / (approx_tval * sqrt(1/dist_n + 1/control_n))),
-         pooled_SD_to_use=if_else(!is.na(exact_pooled_SD),exact_pooled_SD,approx_pooled_SD),
-         logRR_var=pooled_SD_to_use*((1/(dist_n*(disturbance_av^2)))+(1/(control_n*(control_av^2)))))
-
 
 #use the recommended method of Nakagawa et al for calculation of variance
 #based on scripts from https://alistairmcnairsenior.github.io/Miss_SD_Sim/
@@ -178,7 +149,7 @@ ggplot(soil_fauna_rr,aes(rr_diff))+
   geom_histogram()+
   facet_wrap(~geary_test)
 
-#the similarity of the two effect sizes is very high - need to work out where the deviations come from though
+#the similarity of the two effect sizes is very high
 #it looks like they come from the comparisons that fail the geary test, we will test the impact of including these later
 
 
@@ -203,27 +174,27 @@ soil_fauna_rr<-as_tibble(soil_fauna_rr)
 aridity_index<-raster("data/spatial_data/aridity/Global-AI_ET0_v3_annual/ai_v3_yr.tif")
 
 #extract aridity data
-soil_fauna_rr$aridity<-extract(aridity_index,cbind(soil_fauna_rr$lon,soil_fauna_rr$lat))
+soil_fauna_rr$aridity<-raster::extract(aridity_index,cbind(soil_fauna_rr$lon,soil_fauna_rr$lat))
 #convert to correct units
 soil_fauna_rr$aridity<-soil_fauna_rr$aridity/10000
 
 #remove columns that are not needed
 col_details<-data.frame(col_name=names(soil_fauna_rr),
-                        col_index=seq(1,75))
+                        col_index=seq(1,68))
 
-soil_fauna_rr<-dplyr::select(soil_fauna_rr,-c(7:11,21:25,38:41,43:44,50:60,62:65))
+soil_fauna_rr<-dplyr::select(soil_fauna_rr,-c(9:13,23:27,38:41,43:44,50:53,55:58))
 
 
-#subset dataset to get variables of interest
+#subset dataset to get variables of interest for first analyses
 # All abundance 
-fauna_ab <- filter(soil_fauna_rr, broad_outcome == 'abundance')
+fauna_ab <- filter(soil_fauna_rr, broad_outcome == 'abundance',use_for_first_analysis==TRUE)
 # All diversity 
-fauna_div <- filter(soil_fauna_rr, broad_outcome == 'alpha diversity')
+fauna_div <- filter(soil_fauna_rr, broad_outcome == 'alpha diversity',use_for_first_analysis==TRUE)
 # Subset to give only studies of each precipitation change and outcome combination
-fauna_ab_red <- filter(fauna_ab, disturbance_type == 'drought')
-fauna_ab_inc <- filter(fauna_ab, disturbance_type == 'precip_inc')
-fauna_div_red <- filter(fauna_div, disturbance_type == 'drought')
-fauna_div_inc <- filter(fauna_div, disturbance_type == 'precip_inc')
+fauna_ab_red <- filter(fauna_ab, disturbance_type == 'drought',use_for_first_analysis==TRUE)
+fauna_ab_inc <- filter(fauna_ab, disturbance_type == 'precip_inc',use_for_first_analysis==TRUE)
+fauna_div_red <- filter(fauna_div, disturbance_type == 'drought',use_for_first_analysis==TRUE)
+fauna_div_inc <- filter(fauna_div, disturbance_type == 'precip_inc',use_for_first_analysis==TRUE)
 
 # Save all these files
 write.csv(fauna_ab, "data/abundance_data.csv")
