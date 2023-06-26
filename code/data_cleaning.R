@@ -187,24 +187,42 @@ col_details<-data.frame(col_name=names(soil_fauna_rr),
 soil_fauna_rr<-dplyr::select(soil_fauna_rr,-c(9:13,23:27,43:44,50:53,55:58))
 
 
-#subset dataset to get variables of interest for first analyses
+#check to see which outcomes are most commonly reported
+soil_fauna_rr%>%
+  group_by(detailed_outcome,disturbance_type)%>%
+  summarise(no_es=length(lnrr_laj),no_studies=length(unique(Study_ID)))
+#it only makes sense to analyse data on abundance, taxonomic richness, and shannon wiener
+
+#subset dataset to get variables of interest for first set of analyses
 # All abundance 
 fauna_ab <- filter(soil_fauna_rr, broad_outcome == 'abundance',use_for_first_analysis==TRUE)
-# All diversity 
-fauna_div <- filter(soil_fauna_rr, broad_outcome == 'alpha diversity',use_for_first_analysis==TRUE)
 # Subset to give only studies of each precipitation change and outcome combination
 fauna_ab_red <- filter(fauna_ab, disturbance_type == 'drought',use_for_first_analysis==TRUE)
 fauna_ab_inc <- filter(fauna_ab, disturbance_type == 'precip_inc',use_for_first_analysis==TRUE)
-fauna_div_red <- filter(fauna_div, disturbance_type == 'drought',use_for_first_analysis==TRUE)
-fauna_div_inc <- filter(fauna_div, disturbance_type == 'precip_inc',use_for_first_analysis==TRUE)
+
+
+# All taxonomic richness
+fauna_richness <- filter(soil_fauna_rr, detailed_outcome == 'taxonomic richness',use_for_first_analysis==TRUE)
+# Subset to give only studies of each precipitation change and outcome combination
+fauna_rich_red <- filter(fauna_richness, disturbance_type == 'drought',use_for_first_analysis==TRUE)
+fauna_rich_inc <- filter(fauna_richness, disturbance_type == 'precip_inc',use_for_first_analysis==TRUE)
+
+# All Shannon wiener
+fauna_shannon <- filter(soil_fauna_rr, detailed_outcome == 'shannon wiener',use_for_first_analysis==TRUE)
+# Subset to give only studies of each precipitation change and outcome combination
+fauna_shannon_red <- filter(fauna_shannon, disturbance_type == 'drought',use_for_first_analysis==TRUE)
+fauna_shannon_inc <- filter(fauna_shannon, disturbance_type == 'precip_inc',use_for_first_analysis==TRUE)
 
 # Save all these files
 write.csv(fauna_ab, "data/abundance_data.csv")
-write.csv(fauna_div, "data/diversity_data.csv")
+write.csv(fauna_richness, "data/richness_data.csv")
+write.csv(fauna_shannon, "data/shannon_data.csv")
 write.csv(fauna_ab_red, "data/abundance_red_data.csv")
 write.csv(fauna_ab_inc, "data/abundance_inc_data.csv")
-write.csv(fauna_div_red, "data/diversity_red_data.csv")
-write.csv(fauna_div_inc, "data/diversity_inc_data.csv")
+write.csv(fauna_rich_red, "data/richness_red_data.csv")
+write.csv(fauna_rich_inc, "data/richness_inc_data.csv")
+write.csv(fauna_shannon_red, "data/shannon_red_data.csv")
+write.csv(fauna_shannon_inc, "data/shannon_inc_data.csv")
 
 
 ##################################################################
