@@ -21,10 +21,11 @@ I2_multi<-function(model){
 #read in data
 
 #read in .csv files with soil fauna data
-abundance_red<- read_csv("data/abundance_red_data.csv")
-abundance_inc<- read_csv("data/abundance_inc_data.csv")
-diversity_red<- read_csv("data/diversity_red_data.csv")
-diversity_inc<- read_csv("data/diversity_inc_data.csv")
+abundance_red<- read.csv("data/abundance_red_data.csv")
+abundance_inc<- read.csv("data/abundance_inc_data.csv")
+diversity_red<- read.csv("data/diversity_red_data.csv")
+diversity_inc<- read.csv("data/diversity_inc_data.csv")
+
 
 ######################################################
 #1. meta-analyses#####################################
@@ -33,6 +34,77 @@ diversity_inc<- read_csv("data/diversity_inc_data.csv")
 ########################################
 # 1.1 - analysis of change in abundance#
 ########################################
+
+fauna_list<-list(abundance_red,abundance_inc,diversity_red,diversity_inc)
+outcomes<-c("Abundance","Abundance","Diversity","Diversity")
+disturbances<-c("Precipitation reduction","Precipitation increase","Precipitation reduction","Precipitation increase")
+sensitivity_summary<-data.frame()
+#loop through all the different stages for the meta-analyses
+for (i in 1:length(fauna_list)){
+  
+  temp_df<-fauna_list[[i]]
+  #run null model
+  m0<-rma.mv(lnrr_laj,v_lnrr_laj,random=~1|Site_ID/Study_ID,data=temp_df)
+  #remove comparisons that fail geary's test
+  no_geary<-temp_df%>%
+    mutate(geary_test=if_else(is.na(geary_test),"Not needed",geary_test))%>%
+    filter(geary_test!="fail")
+  #null model excluding the studies that fail Geary's test
+  m0_no_geary<-rma.mv(lnrr_laj,v_lnrr_laj,random=~1|Site_ID/Study_ID,data=no_geary)
+  #calculate cook distances to identify influential datapoints
+  cooks_ab_red_0<-cooks.distance(m0)
+  #filter out highly influential datapoints
+  temp_df_filtered<-temp_df%>%cbind(cooks_ab_red_0)%>%filter(cooks_ab_red_0 < 3.0*mean(cooks_ab_red_0,na.rm=TRUE))
+  #rerun analysis without highly influential datapoints
+  m0_filter<-rma.mv(lnrr_laj,v_lnrr_laj,random=~1|Site_ID/Study_ID,data=temp_df_filtered)#null model
+  #remove studies that have low validity as assessed by critical appraisal
+  temp_df_appraisal<-temp_df%>%
+    filter(Validity!="Low validity")
+  #run model with no low validity studies
+  m0_no_low<-rma.mv(lnrr_laj,v_lnrr_laj,random=~1|Site_ID/Study_ID,data=temp_df_appraisal)
+  #put all this information into a table
+  #info to include - estimate, se, p val, Q result, I squared
+  #create loop to do this
+  model_type<-c("Null model","Failed Geary test","Outliers removed","Low validity removed")
+  model_list<-list(m0,m0_no_geary,m0_filter,m0_no_low)
+  for (y in 1:4){
+    params<-broom::tidy(model_list[[y]])
+    qe<-model_list[[y]]$QE
+    qe_p<-model_list[[y]]$QEp
+    I2<-I2_multi(model_list[[y]])
+    sens_temp<-data.frame(disturbance=disturbances[i],outcome=outcomes[i],
+                          model_type=model_type[y],params,qe,qe_p,I2)
+    sensitivity_summary<-rbind(sensitivity_summary,sens_temp)
+  }
+}
+  
+
+  
+  
+  
+  
+
+  
+  
+  
+  
+
+  
+  #create loop to do this
+  model_type<-c("Null model","Failed Geary test","Outliers removed","Low validity removed")
+  model_list<-list(fauna_ab_red_m0,fauna_ab_red_m0_no_geary,fauna_ab_red_m0_filter,fauna_ab_red_m0_no_low)
+  ab_dec_sensitivity_summary<-data.frame()
+  for (i in 1:4){
+    params<-broom::tidy(model_list[[i]])
+    qe<-model_list[[i]]$QE
+    qe_p<-model_list[[i]]$QEp
+    I2<-I2_multi(model_list[[i]])
+    sens_temp<-data.frame(disturbance="Precipitation reduction",outcome="Abundance",
+                          model_type=model_type[i],params,qe,qe_p,I2)
+    ab_dec_sensitivity_summary<-rbind(ab_dec_sensitivity_summary,sens_temp)
+  }
+}
+
 
 #################################################
 # 1.1.1 - following reductions in precipitation##
