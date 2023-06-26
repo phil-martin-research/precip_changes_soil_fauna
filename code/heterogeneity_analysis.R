@@ -8,47 +8,41 @@ pacman::p_load(tidyverse,metafor,cowplot,orchaRd,ggbeeswarm,tidyr,ggthemes,sp,br
 abundance<- read_csv("data/abundance_data.csv")
 diversity<- read_csv("data/diversity_data.csv")
 
-#data exploration
-
-#look at correlations between change in precipitation and other variables
-ggplot(abundance,aes(perc_annual_dist,aridity))+ #aridity
-  geom_point(shape=1)+
-  geom_smooth(method="lm")
-#not very compelling correlation
-ggplot(abundance,aes(perc_annual_dist,av_width))+ #body width
-  geom_point(shape=1)+
-  geom_smooth(method="lm")
-
-
-#plot effect size against precipitation change
-
-ggplot(abundance,aes(perc_annual_dist,lnrr_laj))+
-  geom_point(shape=1)+
-  geom_smooth(method="lm")+
-  facet_wrap(~Functional_group_size)
 
 ###############################################################################
 #1 - data tidying##############################################################
 ###############################################################################
 
+abundance%>%
+  group_by(Validity,perc_annual_dist,Functional_group_size.y,aridity,exoskeleton)%>%
+  summarise(size_count=length(above_below))%>%
+  print(n=100)
+
+
+#need to fix problem with validity
+
+abundance$Validity<-ifelse(is.na(abundance$Validity),"Medium validity",abundance$Validity)
+
 #complete cases for the variable about percentage change in precipitation and body size
-abundance_complete<-abundance[complete.cases(abundance$perc_annual_dist,abundance$Functional_group_size),]
+abundance_complete<-abundance[complete.cases(abundance$perc_annual_dist,abundance$Functional_group_size.y,
+                                             abundance$aridity,abundance$above_below,
+                                             abundance$exoskeleton,abundance$Validity),]
 #we lose 10 comparisons for abundance
 diversity_complete<-diversity[complete.cases(diversity$perc_annual_dist,diversity$Functional_group_size),]
 #we lose 7 comparisons for diversity
 
-#classify taxa as collembola or non-collembola
-abundance_complete$collembola<-ifelse(abundance_complete$Highest_taxonomic_resolution=="Collembola","Collembola","Non-Collembola")
-
-#subset to only include non-collembola
-abundance_complete_non_coll<-filter(abundance_complete,collembola=="Non-Collembola")
 
 ###############################################################################
 #1 - models of heterogeneity in response of abundance of soil and litter fauna#
 ###############################################################################
 
 #first a saturated model including all potential predictors
-M_sat_abun<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~aridity+perc_annual_dist+Functional_group_size+above_below,random=~1|Site_ID/Study_ID,data=abundance_complete)
+M_sat_abun<-rma.mv(lnrr_laj,v_lnrr_laj,mods =  ~aridity*perc_annual_dist+
+                                                Functional_group_size.y*perc_annual_dist+
+                                                above_below*perc_annual_dist+
+                                                exoskeleton*perc_annual_dist+
+                                                Validity*perc_annual_dist,
+                   random=~1|Site_ID/Study_ID,data=abundance_complete)
 #use cooks distance to identify influential points
 cooks_sat_abun<-cooks.distance(M_sat_abun)
 #filter out high cooks distances for saturated model and then run all models

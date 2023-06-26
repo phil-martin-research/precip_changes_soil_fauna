@@ -5,7 +5,7 @@
 
 rm(list = ls())
 
-pacman::p_load(tidyverse,metafor,tidyr,here,patchwork,dplyr,raster)
+pacman::p_load(tidyverse,metafor,tidyr,here,patchwork,dplyr,raster,ggthemes,lemon)
 
 #read in .csv file with soil fauna data
 crit_appraisal<- read_csv("data/critical_appraisal_2023_05_29.csv")
@@ -25,7 +25,9 @@ fact_table<-fact_table%>%
   left_join(sites,"Site_ID")%>%
   dplyr::select(-Study_ID.y)%>%
   rename(Study_ID=Study_ID.x)%>%
-  left_join(crit_appraisal,by="Study_ID")
+  left_join(crit_appraisal,by="Study_ID")%>%
+  left_join(taxonomy,by="Highest_taxonomic_resolution")
+
 
 #clean dataset
 fact_table <- fact_table %>%
@@ -59,9 +61,9 @@ fact_table <- fact_table %>%
 
 #remove columns that we don't use 
 col_details<-data.frame(col_name=names(fact_table),
-                        col_index=seq(1,133))
+                        col_index=seq(1,145))
 
-fact_table<-dplyr::select(fact_table,-c(18,19,22,23,33,35:77,79:87,89:108,115:122))
+fact_table<-dplyr::select(fact_table,-c(18,19,22,23,33,35:87,89:108,115:122,128:136,138:139))
 
 #check to see if any of the means are equal to zero
 #control group
@@ -182,7 +184,7 @@ soil_fauna_rr$aridity<-soil_fauna_rr$aridity/10000
 col_details<-data.frame(col_name=names(soil_fauna_rr),
                         col_index=seq(1,68))
 
-soil_fauna_rr<-dplyr::select(soil_fauna_rr,-c(9:13,23:27,38:41,43:44,50:53,55:58))
+soil_fauna_rr<-dplyr::select(soil_fauna_rr,-c(9:13,23:27,43:44,50:53,55:58))
 
 
 #subset dataset to get variables of interest for first analyses
