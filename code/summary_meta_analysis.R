@@ -181,6 +181,3 @@ facet_summary_plot_with_label2<-facet_summary_plot_with_label1+
 tag_facet(facet_summary_plot_with_label2)
 
 ggsave("figures/for_paper/abun_div_summary_facet.png",width = 12,height = 20,units = "cm",dpi = 300)
-
-
-
