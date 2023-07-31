@@ -27,7 +27,7 @@ abundance_complete<-abundance[complete.cases(abundance$perc_annual_dist,abundanc
                                              abundance$exoskeleton),]
 #we lose 21 comparisons for abundance
 
-richness_complete<-richness[complete.cases(richness$perc_annual_dist,
+<-richness[complete.cases(richness$perc_annual_dist,
                                            richness$Functional_group_size.y,
                                            richness$above_below,
                                            richness$exoskeleton),]
@@ -199,8 +199,6 @@ ggsave("figures/for_paper/abundance_precip_size.png",width = 20,height = 10,unit
 #2 - models of heterogeneity in response of diversity of soil and litter fauna#
 ###############################################################################
 
-
-
 #2.1 - taxonomic diversity
 
 # create a unit-level random effect to model residual variance in metafor
@@ -249,56 +247,97 @@ AIC.rma(rich_M0,rich_M1,rich_M2,rich_M3,rich_M4,rich_M5,rich_M6,
         rich_M7,rich_M8,rich_M9,rich_M10,rich_M11,rich_M12,rich_M13,
         rich_M14,rich_M15,rich_M16,rich_M17,rich_M18,rich_M19)
 
-#model 4 is the most parsimonious
+#model 4 is the most parsimonious -  relative support for it is weak although R squared is good ~0.26
+(sum(rich_M0$sigma2) - sum(rich_M4$sigma2)) / sum(rich_M0$sigma2)
+
+#save model formula
+M4_formula<-(~perc_annual_dist)
 
 #create new dataset for predictions
-new_data<-data.frame(perc_annual_dist_centred=c(seq(-80,50,1),seq(-20,75,1)),aridity_centred=c(rep(-0.75,times=131),rep(0.5,96)))
+new_data_rich<-data.frame(perc_annual_dist=seq(min(richness_complete$perc_annual_dist),
+                                                 max(richness_complete$perc_annual_dist),1))
 
 #create a model matrix and remove the intercept
-predgrid<-model.matrix(M3_formula,data=new_data)[,-1]
+predgrid_rich<-model.matrix(M4_formula,data=new_data_rich)[,-1]
 
 #predict onto the new model matrix
-mypreds<-data.frame(predict.rma(M3_centred,newmods=predgrid))
+mypreds_rich<-data.frame(predict.rma(rich_M4,newmods=predgrid_rich))
 
 #attach predictions to variables for plotting
-new_data <- cbind(new_data, mypreds[c("pred", "ci.lb", "ci.ub", "pi.lb", "pi.ub")])
-
-#add original variables
-new_data$perc_annual_dist<-new_data$perc_annual_dist_centred+mean(diversity_filtered$perc_annual_dist)
-new_data$aridity<-new_data$aridity_centred+mean(diversity_filtered$aridity)
+new_data_rich <- cbind(new_data_rich, mypreds_rich[c("pred", "ci.lb", "ci.ub", "pi.lb", "pi.ub")])
 
 
 #plot the results of the predictions
-ggplot(new_data,aes(perc_annual_dist,y=pred,ymin=ci.lb,ymax=ci.ub,colour=as.factor(aridity),fill=as.factor(aridity)))+
-  geom_line(size=1)+
-  geom_ribbon(alpha=0.5,colour=NA)+
+richness_figure<-ggplot(new_data_rich,aes(perc_annual_dist,y=pred))+
+  geom_line()+
+  geom_ribbon(alpha=0.25,aes(ymax=ci.ub,ymin=ci.lb),colour=NA)+
+  geom_ribbon(alpha=0.25,aes(ymax=pi.ub,ymin=pi.lb),colour=NA)+
+  geom_point(data=richness_complete,aes(x=perc_annual_dist,y=lnrr_laj,size=1/v_lnrr_laj),alpha=0.25)+
   theme_cowplot()+
   labs(x="Change in annual precipitation (%)",
-       y="Change in soil fauna alpha diversity\n(log response ratio)",
-       fill="Aridity",colour="Aridity")+
-  scale_color_manual(values = c("#1f78b4","#b2df8a"))+
-  scale_fill_manual(values = c("#1f78b4","#b2df8a"))+
-  facet_wrap(~aridity)+
-  theme(legend.position = "none")
-ggsave("figures/for_paper/diversity_precip_arid_lines.png",width = 20,height = 12,units = "cm",dpi = 300)
-#not very convinced by this result and figure
+       y="Change in soil fauna taxonomic richness\n(log response ratio)")+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"))+
+  theme(legend.position = "none")+
+  geom_hline(yintercept = 0,lty=2,alpha=0.3)+
+  geom_vline(xintercept = 0,lty=2,alpha=0.3)+
+  ylim(-2,1)
+richness_figure
+ggsave("figures/for_paper/richness_precip.png",width = 12,height = 8,units = "cm",dpi = 300)
 
-#could divide between humid and not humid
 
-diversity_filtered%>%
-  mutate(arid_group=ifelse(aridity>0.65,"Humid","Not humid"))%>%
-  ggplot(aes(x=perc_annual_dist))+
-  geom_histogram()+
-  facet_wrap(~arid_group)
 
-diversity_filtered%>%
-  mutate(arid_group=ifelse(aridity>0.65,"Humid","Not humid"))%>%
-  ggplot(aes(x=perc_annual_dist,y=lnrr_laj))+
-  geom_point(shape=1)+
-  facet_wrap(~arid_group)+
-  geom_smooth()
-  
+#2.1 - shannon diversity
 
+# create a unit-level random effect to model residual variance in metafor
+shannon_complete$obsID <- 1:nrow(shannon_complete)
+# mean-centering year of publication to help with interpretation
+shannon_complete$year.c <- as.vector(scale(shannon_complete$study_year, scale = F))
+
+#first a saturated model including all potential predictors
+M_sat_shannon<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist+
+                     Functional_group_size.y+
+                     above_below+
+                     exoskeleton+
+                     year.c+
+                     sqrt_inv_n_tilda-1,
+                   random=~1|Study_ID/Site_ID/obsID,data=shannon_complete)
+
+
+#to test models I don't want to build models with more that 4 parameters due 
+#to the small dataset (k=38) and the associated risk of overparameterisation
+
+
+#test all models against each other
+shannon_M0<-rma.mv(lnrr_laj,v_lnrr_laj,random=~1|Study_ID/Site_ID/obsID,data=shannon_complete)
+shannon_M1<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~year.c,random=~1|Study_ID/Site_ID/obsID,data=shannon_complete)
+shannon_M2<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~sqrt_inv_n_tilda,random=~1|Study_ID/Site_ID/obsID,data=shannon_complete)
+shannon_M3<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~year.c+sqrt_inv_n_tilda,random=~1|Study_ID/Site_ID/obsID,data=shannon_complete)
+shannon_M4<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist,random=~1|Study_ID/Site_ID/obsID,data=shannon_complete)
+shannon_M5<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist+year.c,random=~1|Study_ID/Site_ID/obsID,data=shannon_complete)
+shannon_M6<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist+sqrt_inv_n_tilda,random=~1|Study_ID/Site_ID/obsID,data=shannon_complete)
+shannon_M7<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist+year.c+sqrt_inv_n_tilda,random=~1|Study_ID/Site_ID/obsID,data=shannon_complete)
+shannon_M8<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*Functional_group_size.y-1,random=~1|Study_ID/Site_ID/obsID,data=shannon_complete)
+shannon_M9<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*Functional_group_size.y+year.c-1,random=~1|Study_ID/Site_ID/obsID,data=shannon_complete)
+shannon_M10<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*Functional_group_size.y+sqrt_inv_n_tilda-1,random=~1|Study_ID/Site_ID/obsID,data=shannon_complete)
+shannon_M11<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*Functional_group_size.y+year.c+sqrt_inv_n_tilda-1,random=~1|Study_ID/Site_ID/obsID,data=shannon_complete)
+shannon_M12<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*above_below-1,random=~1|Study_ID/Site_ID/obsID,data=shannon_complete)
+shannon_M13<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*above_below+year.c-1,random=~1|Study_ID/Site_ID/obsID,data=shannon_complete)
+shannon_M14<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*above_below+sqrt_inv_n_tilda-1,random=~1|Study_ID/Site_ID/obsID,data=shannon_complete)
+shannon_M15<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*above_below+year.c+sqrt_inv_n_tilda-1,random=~1|Study_ID/Site_ID/obsID,data=shannon_complete)
+shannon_M16<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*exoskeleton-1,random=~1|Study_ID/Site_ID/obsID,data=shannon_complete)
+shannon_M17<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*exoskeleton+year.c-1,random=~1|Study_ID/Site_ID/obsID,data=shannon_complete)
+shannon_M18<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*exoskeleton+sqrt_inv_n_tilda-1,random=~1|Study_ID/Site_ID/obsID,data=shannon_complete)
+shannon_M19<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*exoskeleton+year.c+sqrt_inv_n_tilda-1,random=~1|Study_ID/Site_ID/obsID,data=shannon_complete)
+
+
+#check to see which model is the most parsimonious 
+AIC.rma(shannon_M0,shannon_M1,shannon_M2,shannon_M3,shannon_M4,shannon_M5,shannon_M6,
+        shannon_M7,shannon_M8,shannon_M9,shannon_M10,shannon_M11,shannon_M12,shannon_M13,
+        shannon_M14,shannon_M15,shannon_M16,shannon_M17,shannon_M19)
+
+#these results support the hypothesis that there has been a change in impact of drought studies over time
+#however ecologically, it's not very interesting!
 
 #######################################################
 #mapping analysis######################################
