@@ -1,6 +1,6 @@
 #this script is produces summary meta-analyses and associated sensitivity tests
 #for changes in abundance, taxonomic richness, and shannon diversity of soil and litter fauna
-#as a result of increases and decreases in precipiations
+#as a result of increases and decreases in precipitation
 
 rm(list = ls())
 

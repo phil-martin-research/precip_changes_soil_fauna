@@ -2,10 +2,7 @@
 
 rm(list = ls())
 
-pacman::p_load(tidyverse,metafor,cowplot,orchaRd,ggbeeswarm,tidyr,ggthemes,sp,broom,lemon,MuMIn,glmulti,PerformanceAnalytics,GGally)
-
-
-
+pacman::p_load(tidyverse,metafor,cowplot,orchaRd,ggbeeswarm,tidyr,ggthemes,sp,broom,lemon,MuMIn,glmulti,PerformanceAnalytics,GGally,gt)
 
 #read in .csv files with soil fauna data
 abundance<- read_csv("data/abundance_data.csv")
@@ -27,7 +24,7 @@ abundance_complete<-abundance[complete.cases(abundance$perc_annual_dist,abundanc
                                              abundance$exoskeleton),]
 #we lose 21 comparisons for abundance
 
-<-richness[complete.cases(richness$perc_annual_dist,
+richness_complete<-richness[complete.cases(richness$perc_annual_dist,
                                            richness$Functional_group_size.y,
                                            richness$above_below,
                                            richness$exoskeleton),]
@@ -47,46 +44,7 @@ abundance_complete$obsID <- 1:nrow(abundance_complete)
 # mean-centering year of publication to help with interpretation
 abundance_complete$year.c <- as.vector(scale(abundance_complete$study_year, scale = F))
 
-#first a saturated model including all potential predictors
-M_sat_abun<-rma.mv(lnrr_laj,v_lnrr_laj,mods =  ~perc_annual_dist+
-                                                Functional_group_size.y*perc_annual_dist+
-                                                above_below*perc_annual_dist+
-                                                exoskeleton*perc_annual_dist+
-                                                sqrt_inv_n_tilda+year.c,
-                                      random=list(~1|Study_ID/Site_ID/obsID),
-                                      data=abundance_complete)
-
-dredge(M_sat_abun)
-
 #test all models against each other
-#need to run simpler set of models:
-#(1) null model; (2) impact of precipitation changes; (3) precipitation changes * aridity
-#(4) precipitation changes * above below; (5) precipitation changes * functional group size
-#(6) precipitation changes * exoskeleton
-
-#all of the above but with year and small study effects to test publication bias too
-#sqrt_inv_n_tilda+year.c
-
-#check the correlation between variables
-abundance_complete[,c("perc_annual_dist","Functional_group_size.y","above_below","exoskeleton","trap","sqrt_inv_n_tilda","year.c")]%>%
-  ggpairs()
-
-ggplot(abundance_complete,aes(aridity,perc_annual_dist))+
-  geom_point()
-
-#there is some correlation between aridity and multiple other variables
-#so we will standarise it by centring the varible and dividing by it's SD
-
-abundance_complete$aridity_std<-(abundance_complete$aridity-mean(abundance_complete$aridity))/sd(abundance_complete$aridity)
-
-#check the correlation between variables again
-abundance_complete[,c("aridity_std","perc_annual_dist","Functional_group_size.y","above_below","exoskeleton","trap","sqrt_inv_n_tilda","year.c")]%>%
-  ggpairs()
-
-#although correlation is still present from testing this version of aridity variable leads to lower vif values
-
-#not enough data to test the impact of study methods
-
 
 #1 - null model
 M0<-rma.mv(lnrr_laj,v_lnrr_laj,random=~1|Study_ID/Site_ID/obsID,data=abundance_complete)
@@ -131,12 +89,34 @@ abun_model_sel<-model.sel(M1,M2,M3,M4,M5,M6,M7,M8,M9,M10,M11,M12,M13,M14,M15,M16
 #M12 is the best model that includes an interaction between functional group size and change in precipitation
 #as well as correction for year effect and small study effect
 
-#calculate model fit
-(sum(M0$sigma2) - sum(M12$sigma2)) / sum(M12$sigma2)
-#r squared is ~0.13
+#create dataframe for all models
+abundance_model_sel_df<-data.frame(abun_model_sel)
+abundance_model_sel_df$model<-row.names(abundance_model_sel_df)
+
+#calculate R2 for all models using a loop
+abundance_model_list<-list(M1,M2,M3,M4,M5,M6,M7,M8,M9,M10,M11,M12,M13,M14,M15,M16)
+abundance_model_list_names<-c("M1","M2","M3","M4","M5","M6","M7","M8","M9","M10","M11","M12","M13","M14","M15","M16")
+abundance_model_R2<-NULL
+for (i in 1:length(abundance_model_list)){
+  abundance_model_R2_temp<-data.frame(model=abundance_model_list_names[i],
+                                      R2=(sum(M0$sigma2) - sum(abundance_model_list[[i]]$sigma2)) / sum(M0$sigma2))
+  abundance_model_R2<-rbind(abundance_model_R2,abundance_model_R2_temp)
+}
+
+#merge R2 with other model descriptors
+abundance_model_sel_df2<-abundance_model_sel_df%>%
+  left_join(abundance_model_R2,"model")%>%
+  arrange(desc(weight))
+
+#save this model table
+abundance_model_sel_table<-abundance_model_sel_df2%>%
+  mutate(across(where(is.numeric), round, 3))%>%
+  gt()
+#expord this to a word file
+abundance_model_sel_table%>%gtsave("figures/for_paper/abundance_selection_table.docx")
 
 
-#copy and save the model formula
+#copy and save the model formula of the best model
 M12_formula<-(~perc_annual_dist*Functional_group_size.y+year.c+sqrt_inv_n_tilda-1)
 
 #create dataframe with new data for predictions
