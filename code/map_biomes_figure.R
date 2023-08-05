@@ -1,11 +1,7 @@
 #code for drawing map showing location of study sites
 
-rm(list = ls())
-
-install.packages("ggnewscale")
-
 #load packages
-pacman::p_load(tidyverse,ggthemes,lemon,raster,sf,sp,rgdal,dismo,statip,cowplot,plotrix,plotbiomes,ggnewscale)
+pacman::p_load(tidyverse,ggthemes,lemon,raster,sf,sp,rgdal,dismo,statip,cowplot,plotrix,plotbiomes,ggnewscale,ggmagnify)
 
 #load data
 spatial_data<-read.csv("data/fauna_spatial_data.csv")
@@ -25,13 +21,13 @@ spatial_data_unique<-spatial_data%>%mutate(precip_dec=if_else(disturbance_type==
                                            precip_inc=if_else(disturbance_type=="precip_inc",TRUE,FALSE))%>%
                                            group_by(lat,lon)%>%
                                            summarise(dec_count=sum(precip_dec),inc_count=sum(precip_inc))%>%
-                                           mutate(dist_types=if_else(dec_count&inc_count>0,"Both increases and decreases",if_else(dec_count>0,
-                                                 "Precipitation decreases","Precipitation increases")))%>%
+                                           mutate(dist_types=if_else(dec_count&inc_count>0,"Both increases\nand decreases",if_else(dec_count>0,
+                                                 "Precipitation\ndecreases","Precipitation\nincreases")))%>%
+                                           mutate(dist_types=fct_relevel(dist_types),"Precipitation\ndecreases")%>%
                                            group_by(lat,lon,dist_types)%>%
-                                           summarise(total_comp=dec_count+inc_count)%>%
-                                           mutate(dist_types=as.factor(dist_types))
+                                           summarise(total_comp=dec_count+inc_count)
 
-
+                                           
 #different size for different numbers of comparisons
 #group sites into unique sites
 
@@ -48,17 +44,24 @@ site_map<-ggplot(world_map, aes(x = long, y = lat, group = group)) +
         axis.ticks=element_blank(),
         panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
-        legend.position = "bottom",
+        legend.position = "right",
         legend.margin=margin(t=-30),
         text = element_text(size = 10),
-        plot.margin = margin(6, 0, 12, 0))+
+        plot.margin = margin(0, 0, 0, -1,unit="cm"))+
   scale_y_continuous(expand = expansion(0,5))+
   scale_x_continuous(expand = expansion(0,0))+
-  scale_shape_manual("Disturbance types",values = c(25,24,23))+
-  scale_size_area(max_size = 3,guide = 'none')+
-  scale_fill_manual("Disturbance types",values = c("#ff412c","#7142ff","#e32eee"),guide="legend")
+  scale_shape_manual("Disturbance types",values = c(24,25,23))+
+  scale_size_area(max_size = 4,guide = 'none')+
+  scale_fill_manual("Disturbance types",values = c("#7142ff","#ff412c","#e32eee"),guide="legend")
 
-site_map
+
+from<-c(ymin=35,ymax=45,xmin=-90,xmax=-70)
+to<-c(xmin=-35,xmax=5,ymin=-40,ymax=-20)
+
+map_magnify<-site_map+
+  geom_magnify(from=from,to=to)
+
+
 ggsave("figures/for_paper/site_map.png",site_map,width =20,height = 10,dpi = 300,units = "cm")
 
 ###########################################
@@ -123,32 +126,23 @@ biome_plot <- ggplot() +
         axis.text = element_text(size=10),
         panel.grid.minor = element_blank(),
         legend.text=element_text(size=8),
-        plot.margin = margin(6, 0, 12, 0))+
+        plot.margin = margin(0.3, 0, 0, 0,unit="cm"))+
   scale_y_continuous(expand = expansion(0,0))+
   scale_x_continuous(expand = expansion(0,0))+
-  scale_shape_manual("Disturbance types",values = c(25,24,23),guide="none")+
-  scale_size_area(max_size = 3,guide = 'none')+
-  scale_fill_manual("Disturbance types",values = c("#ff412c","#7142ff","#e32eee"),guide="none")
+  scale_shape_manual("Disturbance types",values = c(24,25,23),guide="none")+
+  scale_size_area(max_size = 4,guide = 'none')+
+  scale_fill_manual("Disturbance types",values = c("#7142ff","#ff412c","#e32eee"),guide="none")
 biome_plot
 
-
-?margin
-
 #combine the two plots
-map_biome<-plot_grid(site_map+theme(legend.position = "none"),
-          biome_plot,
-          labels=c("(a)","(b)"),
-          rel_widths = c(1,0.75),
-          align = 'v', axis = 'l')
+biome_combined<-plot_grid(biome_plot,NULL,
+                          rel_widths = c(0.8,0.2))
 
-#extract the legend from the map
-legend_bottom<- get_legend(
-  site_map + guides(fill = guide_legend(nrow = 1),shape=guide_legend(nrow = 1)) +
-    theme(legend.position = "bottom")
-)
-
-#add legend below the plots
-map_biome_legend<-plot_grid(map_biome,legend_bottom,ncol=1,rel_heights = c(1,0.2),axis = "b")
+#combined plots
+map_biome<-plot_grid(site_map,NULL,biome_combined,
+          labels=c("(a)","","(b)"),
+          rel_heights = c(1.2,-0.2,1),
+          nrow=3)
 
 #save the figure
-save_plot("figures/for_paper/map_biomes.png",map_biome_legend,base_height = 8,base_width = 30,dpi=300,units="cm")
+save_plot("figures/for_paper/map_biomes.png",map_biome,base_height = 15,base_width = 18,dpi=300,units="cm")
