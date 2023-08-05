@@ -150,7 +150,6 @@ new_data_micro<-subset(new_data,Functional_group_size.y=="microfauna"&perc_annua
 new_data_meso<-subset(new_data,Functional_group_size.y!="microfauna")
 
 
-
 #merge these together
 new_data_merge<-rbind(new_data_micro,new_data_meso)
 
@@ -222,13 +221,45 @@ rich_M17<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*exoskeleton+year.c
 rich_M18<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*exoskeleton+sqrt_inv_n_tilda-1,random=~1|Study_ID/Site_ID/obsID,data=richness_complete)
 rich_M19<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*exoskeleton+year.c+sqrt_inv_n_tilda-1,random=~1|Study_ID/Site_ID/obsID,data=richness_complete)
 
-#check to see which model is the most parsimonious 
-AIC.rma(rich_M0,rich_M1,rich_M2,rich_M3,rich_M4,rich_M5,rich_M6,
-        rich_M7,rich_M8,rich_M9,rich_M10,rich_M11,rich_M12,rich_M13,
-        rich_M14,rich_M15,rich_M16,rich_M17,rich_M18,rich_M19)
 
-#model 4 is the most parsimonious -  relative support for it is weak although R squared is good ~0.26
-(sum(rich_M0$sigma2) - sum(rich_M4$sigma2)) / sum(rich_M0$sigma2)
+#create a model selection table of these models
+rich_model_sel<-model.sel(rich_M1,rich_M2,rich_M3,rich_M4,rich_M5,rich_M6,rich_M7,rich_M8,rich_M9,rich_M10,rich_M11,rich_M12,
+                          rich_M13,rich_M14,rich_M15,rich_M16,rich_M17,rich_M18,rich_M19)
+
+#M4 is the best model  - it just includes change in precipitation
+#as well as correction for year effect and small study effect
+
+#create dataframe for all models
+rich_model_sel_df<-data.frame(rich_model_sel)
+rich_model_sel_df$model<-row.names(rich_model_sel_df)
+
+#calculate R2 for all models using a loop
+rich_model_list<-list(rich_M1,rich_M2,rich_M3,rich_M4,rich_M5,rich_M6,rich_M7,rich_M8,rich_M9,rich_M10,rich_M11,rich_M12,
+                           rich_M13,rich_M14,rich_M15,rich_M16,rich_M17,rich_M18,rich_M19)
+rich_model_list_names<-c("rich_M1","rich_M2","rich_M3","rich_M4","rich_M5","rich_M6","rich_M7","rich_M8","rich_M9","rich_M10","rich_M11","rich_M12",
+                              "rich_M13","rich_M14","rich_M15","rich_M16","rich_M17","rich_M18","rich_M19")
+rich_model_R2<-NULL
+for (i in 1:length(rich_model_list)){
+  rich_model_R2_temp<-data.frame(model=rich_model_list_names[i],
+                                      R2=(sum(rich_M0$sigma2) - sum(rich_model_list[[i]]$sigma2)) / sum(rich_M0$sigma2))
+  rich_model_R2<-rbind(rich_model_R2,rich_model_R2_temp)
+}
+
+#set negative R2 values to zero
+rich_model_R2$R2<-ifelse(rich_model_R2$R2<0,0,rich_model_R2$R2)
+
+#merge R2 with other model descriptors
+rich_model_sel_df2<-rich_model_sel_df%>%
+  left_join(rich_model_R2,"model")%>%
+  arrange(desc(weight))
+
+#save this model table
+rich_model_sel_table<-rich_model_sel_df2%>%
+  mutate(across(where(is.numeric), round, 3))%>%
+  gt()
+#export this to a word file
+rich_model_sel_table%>%gtsave("figures/for_paper/richness_selection_table.docx")
+
 
 #save model formula
 M4_formula<-(~perc_annual_dist)

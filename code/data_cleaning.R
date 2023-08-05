@@ -3,7 +3,7 @@
 #2 - spatial data for maps etc
 #3 - dataset for rainfall bias etc
 
-rm(list = ls())
+#first run file weighted_CV_functions.R
 
 pacman::p_load(tidyverse,metafor,tidyr,here,patchwork,dplyr,raster,ggthemes,lemon)
 
@@ -230,4 +230,8 @@ write.csv(fauna_shannon_inc, "data/shannon_inc_data.csv")
 ##################################################################
 
 #we want data with study details, locations, taxonomic groups/size classes, and disturbance types
-
+soil_fauna_spatial_data<-soil_fauna_rr%>%filter(use_for_first_analysis==TRUE)%>%#keep only data we use for analyses
+                          select(Study_ID,Site_ID,disturbance_type,Functional_group_size.y,Country,lat,lon) #select only columns we want
+                          
+#save this as a .csv
+write.csv(soil_fauna_spatial_data,"data/fauna_spatial_data.csv")
