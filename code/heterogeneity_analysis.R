@@ -148,10 +148,17 @@ abundance_sub%>%
 
 new_data_micro<-subset(new_data,Functional_group_size.y=="microfauna"&perc_annual_dist<=100)
 new_data_meso<-subset(new_data,Functional_group_size.y!="microfauna")
-
+extrapolation_micro<-subset(new_data,Functional_group_size.y=="microfauna"&perc_annual_dist>100)
+extrapolation_micro$Functional_group_size<-extrapolation_micro$Functional_group_size.y
 
 #merge these together
 new_data_merge<-rbind(new_data_micro,new_data_meso)
+
+#add data on sample size for each group
+sample_size_label<-abundance_sub%>%
+  group_by(Functional_group_size)%>%
+  summarise(k=length(yi),study_n=n_distinct(Study_ID))%>%
+  mutate(k_label=paste("k = ",k," (",study_n,")",sep = ""))
 
 #new version of size and annual change plot
 new_data_merge%>%
@@ -161,18 +168,21 @@ ggplot(aes(x=perc_annual_dist,y=pred,colour=Functional_group_size,fill=Functiona
   geom_ribbon(alpha=0.25,aes(ymax=ci.ub,ymin=ci.lb),colour=NA)+
   geom_ribbon(alpha=0.25,aes(ymax=pi.ub,ymin=pi.lb),colour=NA)+
   facet_rep_wrap(~Functional_group_size,repeat.tick.labels = TRUE)+
+  geom_line(data=extrapolation_micro,lty=3,aes(x=perc_annual_dist,y=pred,colour=Functional_group_size))+
   geom_point(data=abundance_sub,aes(x=perc_annual_dist,y=lnrr_laj,size=1/v_lnrr_laj),alpha=0.25)+
   xlab("Change in annual precipitation (%)")+
-  ylab("Change in soil fauna abundance (log ratio)")+
+  ylab("Change in soil fauna abundance (log response ratio)")+
   scale_color_manual(values = c("#02475f","#c3386b","#e0b500"))+
   scale_fill_manual(values = c("#02475f","#c3386b","#e0b500"))+
   theme(legend.position = "none")+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
           panel.background = element_blank(), axis.line = element_line(colour = "black"))+
   geom_hline(yintercept = 0,lty=2,alpha=0.3)+
-  geom_vline(xintercept = 0,lty=2,alpha=0.3)
-ggsave("figures/for_paper/abundance_precip_size.png",width = 20,height = 10,units = "cm",dpi = 300)
+  geom_vline(xintercept = 0,lty=2,alpha=0.3)+
+  geom_text(data=sample_size_label,aes(x=150,y=4,label=k_label),colour="black")
 
+#save plot
+ggsave("figures/for_paper/abundance_precip_size.png",width = 20,height = 10,units = "cm",dpi = 300)
 
 ###############################################################################
 #2 - models of heterogeneity in response of diversity of soil and litter fauna#
@@ -277,13 +287,18 @@ mypreds_rich<-data.frame(predict.rma(rich_M4,newmods=predgrid_rich))
 #attach predictions to variables for plotting
 new_data_rich <- cbind(new_data_rich, mypreds_rich[c("pred", "ci.lb", "ci.ub", "pi.lb", "pi.ub")])
 
+#work out k and number of studies here too
+richness_sample_size<-richness_complete%>%
+  summarise(k=length(yi),study_n=n_distinct(Study_ID))%>%
+  mutate(k_label=paste("k = ",k," (",study_n,")",sep = ""))
+
 
 #plot the results of the predictions
 richness_figure<-ggplot(new_data_rich,aes(perc_annual_dist,y=pred))+
   geom_line()+
   geom_ribbon(alpha=0.25,aes(ymax=ci.ub,ymin=ci.lb),colour=NA)+
   geom_ribbon(alpha=0.25,aes(ymax=pi.ub,ymin=pi.lb),colour=NA)+
-  geom_point(data=richness_complete,aes(x=perc_annual_dist,y=lnrr_laj,size=1/v_lnrr_laj),alpha=0.25)+
+  geom_point(data=richness_complete,aes(x=perc_annual_dist,y=lnrr_laj,size=1/v_lnrr_laj),alpha=0.2)+
   theme_cowplot()+
   labs(x="Change in annual precipitation (%)",
        y="Change in soil fauna taxonomic richness\n(log response ratio)")+
@@ -292,13 +307,14 @@ richness_figure<-ggplot(new_data_rich,aes(perc_annual_dist,y=pred))+
   theme(legend.position = "none")+
   geom_hline(yintercept = 0,lty=2,alpha=0.3)+
   geom_vline(xintercept = 0,lty=2,alpha=0.3)+
-  ylim(-2,1)
+  ylim(-2,1)+
+  geom_text(data=richness_sample_size,aes(x=-90,y=1,label=k_label),colour="black")
 richness_figure
 ggsave("figures/for_paper/richness_precip.png",width = 12,height = 8,units = "cm",dpi = 300)
 
 
 
-#2.1 - shannon diversity
+#2.2 - shannon diversity
 
 # create a unit-level random effect to model residual variance in metafor
 shannon_complete$obsID <- 1:nrow(shannon_complete)

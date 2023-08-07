@@ -132,8 +132,8 @@ fauna_data<-fauna_data%>%
              position=position_dodge(width=1),size=4,shape=21,colour="black")+
   theme_cowplot()+
   facet_rep_wrap(~detailed_outcome,scales = "free_x",repeat.tick.labels = TRUE,ncol=1)+
-  scale_fill_manual("Outcome type",values = c("#1f9e89","#fde725"))+
-  scale_color_manual("Outcome type",values = c("#1f9e89","#fde725"))+
+  scale_fill_manual("Disturbance type",values = c("#1f9e89","#fde725"))+
+  scale_color_manual("Disturbance type",values = c("#1f9e89","#fde725"))+
   scale_size_continuous(range = c(1,10))+
   labs(y="Disturbance type",x="Change in soil and litter fauna\noutcome (log response ratio)")+
   guides(size = "none")+

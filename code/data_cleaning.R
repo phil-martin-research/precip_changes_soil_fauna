@@ -10,7 +10,7 @@ pacman::p_load(tidyverse,metafor,tidyr,here,patchwork,dplyr,raster,ggthemes,lemo
 #read in .csv file with soil fauna data
 crit_appraisal<- read_csv("data/critical_appraisal_2023_05_29.csv")
 sites<- read_csv("data/site_data_2023_06_07.csv")
-fact_table<- read_csv("data/fact_table_2023_06_19.csv")
+fact_table<- read_csv("data/fact_table_2023_08_06.csv")
 taxonomy<- read_csv("data/taxonomy.csv")
 body_length<- read_csv("data/body_length.csv")
 body_width<- read_csv("data/body_width.csv")
@@ -27,6 +27,10 @@ fact_table<-fact_table%>%
   rename(Study_ID=Study_ID.x)%>%
   left_join(crit_appraisal,by="Study_ID")%>%
   left_join(taxonomy,by="Highest_taxonomic_resolution")
+
+ggplot(fact_table,aes(perc_annual_dist))+
+  geom_histogram(binwidth = 5)+
+  facet_wrap(~disturbance_type)
 
 
 #clean dataset
@@ -224,14 +228,13 @@ write.csv(fauna_rich_inc, "data/richness_inc_data.csv")
 write.csv(fauna_shannon_red, "data/shannon_red_data.csv")
 write.csv(fauna_shannon_inc, "data/shannon_inc_data.csv")
 
-
 ##################################################################
 #2- format spatial data###########################################
 ##################################################################
 
 #we want data with study details, locations, taxonomic groups/size classes, and disturbance types
 soil_fauna_spatial_data<-soil_fauna_rr%>%filter(use_for_first_analysis==TRUE)%>%#keep only data we use for analyses
-                          select(Study_ID,Site_ID,disturbance_type,Functional_group_size.y,Country,lat,lon) #select only columns we want
+                          select(Study_ID,Site_ID,disturbance_type,Functional_group_size.y,perc_annual_dist,Country,lat,lon) #select only columns we want
                           
 #save this as a .csv
 write.csv(soil_fauna_spatial_data,"data/fauna_spatial_data.csv")

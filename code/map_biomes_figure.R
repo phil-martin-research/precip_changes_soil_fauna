@@ -50,17 +50,12 @@ site_map<-ggplot(world_map, aes(x = long, y = lat, group = group)) +
         plot.margin = margin(0, 0, 0, -1,unit="cm"))+
   scale_y_continuous(expand = expansion(0,5))+
   scale_x_continuous(expand = expansion(0,0))+
-  scale_shape_manual("Disturbance types",values = c(24,25,23))+
-  scale_size_area(max_size = 4,guide = 'none')+
-  scale_fill_manual("Disturbance types",values = c("#7142ff","#ff412c","#e32eee"),guide="legend")
+  scale_shape_manual("Disturbance type",values = c(24,25,23))+
+  scale_size_continuous(range = c(1,4),guide = 'none')+
+  scale_fill_manual("Disturbance type",values = c("#7142ff","#ff412c","#e32eee"),guide="legend")+
+  guides(fill = guide_legend(override.aes = list(size = 4)))
 
-
-from<-c(ymin=35,ymax=45,xmin=-90,xmax=-70)
-to<-c(xmin=-35,xmax=5,ymin=-40,ymax=-20)
-
-map_magnify<-site_map+
-  geom_magnify(from=from,to=to)
-
+site_map
 
 ggsave("figures/for_paper/site_map.png",site_map,width =20,height = 10,dpi = 300,units = "cm")
 
@@ -104,7 +99,7 @@ biome_plot <- ggplot() +
                    fill = biome),
                # adjust polygon borders
                colour = "gray98",
-               size   = 1)+
+               linewidth   = 1)+
   # fill the polygons with predefined colors
   scale_fill_manual(name   = "Whittaker biomes",
                     breaks = names(Ricklefs_colors),
@@ -130,7 +125,7 @@ biome_plot <- ggplot() +
   scale_y_continuous(expand = expansion(0,0))+
   scale_x_continuous(expand = expansion(0,0))+
   scale_shape_manual("Disturbance types",values = c(24,25,23),guide="none")+
-  scale_size_area(max_size = 4,guide = 'none')+
+  scale_size_continuous(range = c(1,4),guide = 'none')+
   scale_fill_manual("Disturbance types",values = c("#7142ff","#ff412c","#e32eee"),guide="none")
 biome_plot
 
