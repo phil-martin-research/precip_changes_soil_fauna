@@ -2,13 +2,13 @@
 
 rm(list = ls())
 
-pacman::p_load(tidyverse,metafor,cowplot,orchaRd,ggbeeswarm,tidyr,ggthemes,sp,broom,lemon,MuMIn,glmulti,PerformanceAnalytics,GGally,gt)
+pacman::p_load(tidyverse,metafor,cowplot,orchaRd,ggbeeswarm,tidyr,ggthemes,sp,broom,lemon,MuMIn,glmulti,PerformanceAnalytics,GGally,gt,geodata,
+               ggmap,mapproj)
 
 #read in .csv files with soil fauna data
 abundance<- read_csv("data/abundance_data.csv")
 richness<- read_csv("data/richness_data.csv")
 shannon<- read_csv("data/shannon_data.csv")
-
 
 ###############################################################################
 #1 - data tidying##############################################################
@@ -112,7 +112,7 @@ abundance_model_sel_df2<-abundance_model_sel_df%>%
 abundance_model_sel_table<-abundance_model_sel_df2%>%
   mutate(across(where(is.numeric), round, 3))%>%
   gt()
-#expord this to a word file
+#export this to a word file
 abundance_model_sel_table%>%gtsave("figures/for_paper/abundance_selection_table.docx")
 
 
@@ -123,8 +123,8 @@ M12_formula<-(~perc_annual_dist*Functional_group_size.y+year.c+sqrt_inv_n_tilda-
 new_data<-data.frame(expand.grid(
   perc_annual_dist = seq(min(abundance_complete$perc_annual_dist),max(abundance_complete$perc_annual_dist),0.1),
   Functional_group_size.y=levels(as.factor(abundance_complete$Functional_group_size.y)),
-  year.c=mean(abundance_complete$year.c),
-  sqrt_inv_n_tilda=mean(abundance_complete$sqrt_inv_n_tilda)))
+  year.c=0,
+  sqrt_inv_n_tilda=0))
 
 #create a model matrix and remove the intercept
 predgrid<-model.matrix(M12_formula,data=new_data)
@@ -370,68 +370,75 @@ AIC.rma(shannon_M0,shannon_M1,shannon_M2,shannon_M3,shannon_M4,shannon_M5,shanno
 #mapping analysis######################################
 #######################################################
 
+
 #read in precipitation data
-precip_2000<-raster("data/spatial_data/stacked-mmyr-abs-annual_pr_rcp45_ens_1985-2015_nexgddp.tif")
-precip_2070<-raster("data/spatial_data/stacked-mmyr-abs-annual_pr_rcp45_ens_2065-2095_nexgddp.tif")
+precip_current<-raster("data/spatial_data/climate/precip_current.tif")
+precip_2050<-raster("data/spatial_data/climate/precip_2050.tif")
+precip_2070<-raster("data/spatial_data/climate/precip_2070_worst.tif")
+
 #import forest data
-dec_broad<-raster("data/spatial_data/land_cover/deciduous_broadleaf.tif")
-ever_broad<-raster("data/spatial_data/land_cover/evergreen_broadleaf.tif")
-ever_needle<-raster("data/spatial_data/land_cover/evergreen_deciduous_needleleaf.tif")
-mixed_trees<-raster("data/spatial_data/land_cover/mixed_other_trees.tif")
-#read in world shapefile
-data(wrld_simpl)
+tree_cover<-landcover("trees",path="data/spatial_data/land_cover/esa_tree_cover.tif")
 #create SpatialPolygon the size of Europe
 eur_crop<-as(extent(-10,40,35,70),"SpatialPolygons")
 #set coordinate system to be the same for Europe polygon and precipitation data
-crs(eur_crop)<-crs(precip_2000)
+crs(eur_crop)<-crs(precip_current)
 #crop precipitation data to just Europe
-precip_2000_crop<-crop(precip_2000,eur_crop)
-precip_2070_crop<-crop(precip_2070,eur_crop)
+precip_current_crop<-crop(precip_current,eur_crop)
+precip_2050_crop<-crop(precip_2070,eur_crop)
 #calculate percentage change in precipitation in Europe between 2000 and 2070
-perc_change_crop<-(((precip_2070_crop-precip_2000_crop)/precip_2000_crop)*100)
-#mask percentage change in precipitation so that there is only data for terrestrial areas
-mask_perc_change_crop<-mask(perc_change_crop,wrld_simpl)
+perc_change_crop<-(((precip_2050_crop-precip_current_crop)/precip_current_crop)*100)
+#convert this to a SpatRaster for later
+perc_change_crop<-rast(perc_change_crop)
+
 #crop forest data to just Europe
-dec_broad_crop<-crop(dec_broad,eur_crop)
-ever_broad_crop<-crop(ever_broad,eur_crop)
-ever_needle_crop<-crop(ever_needle,eur_crop)
-mixed_trees_crop<-crop(mixed_trees,eur_crop)
-#add together all data on trees to give total cover
-all_trees_crop<-dec_broad_crop+ever_broad_crop+ever_needle_crop+mixed_trees_crop
+tree_cover_crop<-crop(tree_cover,eur_crop)
+
 #reclassify so that forest is defined as areas where tree cover is >40%
-m<-c(-Inf,40,NA,40,102,1)
+m<-c(-Inf,0.4,NA,0.4,1,1)
 rclmat <- matrix(m, ncol=3, byrow=TRUE)
-forest_40<-reclassify(all_trees_crop, rclmat)
-#resample precipitation to have the same resolution as forest cover data
-precip_resample<-terra::resample(mask_perc_change_crop,forest_40)
+forest_40<-classify(tree_cover_crop,rclmat)
+plot(forest_40)
+
+res(forest_40)
+res(perc_change_crop)
+#resample tree cover to have the same resolution as precipitation data
+forest_resample<-terra::resample(forest_40,perc_change_crop)
 #crop precipitation change data so that it only represents changes in forest areas
-forest_precip<-precip_resample*forest_40
+forest_precip<-forest_resample*perc_change_crop
 
 #turn this into a dataframe
 forest_precip_df<-as.data.frame(forest_precip,xy=TRUE)
 
-#subset the dataframe to just Europe to test model
-forest_precip_df_Spain<-subset(forest_precip_df,x>-10&x<30&y<80&y>36)
-forest_precip_df_Spain<-subset(forest_precip_df_Spain,!is.na(layer))
+#subset the dataframe to just Spain to test model
+forest_precip_df_Spain<-subset(forest_precip_df,x>-10&x<40&y<70&y>36.5)
+forest_precip_df_Spain<-subset(forest_precip_df_Spain,!is.na(trees))
 
-ggplot(forest_precip_df_Spain,aes(x,y,fill=layer))+
+ggplot(forest_precip_df_Spain,aes(x,y,fill=trees))+
 geom_tile()
 
 #make predictions for the map
-#copy and save the model formula
-newform<-(~perc_annual_dist*Functional_group_size+I(perc_annual_dist^2)*Functional_group_size-1)
+
+#rerun best model
+M12<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*Functional_group_size.y+
+                                        year.c+sqrt_inv_n_tilda-1,
+                                        random=~1|Study_ID/Site_ID/obsID,data=abundance_complete)
+#copy and save the model formula of the best model
+newform<-(~perc_annual_dist*Functional_group_size.y+year.c+sqrt_inv_n_tilda-1)
 
 #take values from map over which we want to generate predictions
-perc_annual_dist_raster<-forest_precip_df_Spain$layer
+perc_annual_dist_raster<-forest_precip_df_Spain$trees
 
 #create dataframe with new data for predictions
-new_data_map<-data.frame(expand.grid(perc_annual_dist = perc_annual_dist_raster,Functional_group_size=levels(as.factor(abundance$Functional_group_size))))
+new_data_map<-data.frame(expand.grid(perc_annual_dist = perc_annual_dist_raster,
+                                     Functional_group_size.y=levels(as.factor(abundance_complete$Functional_group_size.y)),
+                                     year.c=mean(abundance_complete$year.c),
+                                     sqrt_inv_n_tilda=mean(abundance_complete$sqrt_inv_n_tilda)))
 
 #create a model matrix and remove the intercept
 predgrid_map<-model.matrix(newform,data=new_data_map)
 
 #predict onto the new model matrix
-mypreds_map<-predict.rma(M10,newmods=predgrid_map)
+mypreds_map<-predict.rma(M12,newmods=predgrid_map)
 
 #attach predictions to variables for plotting
 new_data_map$pred<-mypreds_map$pred
@@ -444,12 +451,47 @@ new_data_map$pi.ub<-mypreds_map$pi.ub
 new_data_map$lat<-forest_precip_df_Spain$y
 new_data_map$long<-forest_precip_df_Spain$x
 
+#draw figure
+#first get map of europe
+
+library(rworldmap)
+
+newmap <- getMap(resolution = "low")
+plot(newmap)
+
+plot(newmap,
+     xlim = c(-20, 59),
+     ylim = c(35, 71),
+     asp = 1
+)
+
+library(ggmap)
+europe.limits <- geocode(c("CapeFligely,RudolfIsland,Franz Josef Land,Russia",
+                           "Gavdos,Greece",
+                           "Faja Grande,Azores",
+                           "SevernyIsland,Novaya Zemlya,Russia")
+)
+europe.limits
+
+plot(newmap,
+     xlim = range(europe.limits$lon),
+     ylim = range(europe.limits$lat),
+     asp = 1
+)
+
+
+
 ggplot(new_data_map,aes(long,lat,fill=(exp(pred)-1)*100))+
   geom_tile()+
-  scale_fill_gradient2()+
-  facet_wrap(~Functional_group_size)
+  scale_fill_gradient()+
+  facet_wrap(~Functional_group_size.y)+
+  theme_minimal()
+
+ggplot(new_data_map,aes(x=perc_annual_dist,y=pred))+
+  geom_point()+
+  facet_wrap(~Functional_group_size.y)
+
 
 ggplot(forest_precip_df,aes(x,y,fill=layer))+
   geom_tile()
-
 

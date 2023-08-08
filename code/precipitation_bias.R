@@ -18,10 +18,15 @@ site_data_unique<-site_data%>%mutate(disturbance_type2=if_else(disturbance_type=
 
 
 #get future data and format
+#mid-range 2050 scenario
 precip_2050<-cmip6_world(model="HadGEM3-GC31-LL",ssp=245,time="2041-2060",var="prec",res=2.5,path="data/spatial_data/climate")
 precip_2050_brick<-brick(precip_2050)
 precip_2050_total<-calc(precip_2050_brick,fun=sum,filename="data/spatial_data/climate/precip_2050.tif") #sum precipitation for all months
 
+#worst-case  2070 scenario
+precip_2070<-cmip6_world(model = "HadGEM3-GC31-LL",ssp = 585,time = "2061-2080",var="prec",res=2.5,path="data/spatial_data/climate")
+precip_2070_brick<-brick(precip_2070)
+precip_2070_total<-calc(precip_2070_brick,fun=sum,filename="data/spatial_data/climate/precip_2070_worst.tif") #sum precipitation for all months
 
 #get current data and format
 precip_present<-worldclim_global("prec",res=2.5,path="data/spatial_data/climate")
@@ -30,6 +35,7 @@ precip_present_total<-calc(precip_present_brick,sum,filename="data/spatial_data/
 
 #import saved data
 precip_2050_total<-raster("data/spatial_data/climate/precip_2050.tif")
+precip_2070_total<-raster("data/spatial_data/climate/precip_2070_worst.tif")
 precip_present_total<-raster("data/spatial_data/climate/precip_current.tif")
 
 # extract precip at each site 
@@ -39,10 +45,12 @@ coordinates(coords)<-c("lon","lat")
 #extract data from raster and append to df
 precip_present_extracted <-raster::extract(x=precip_present_total, y=coords)
 precip_50_extracted <-raster::extract(x=precip_2050_total, y=coords)
+precip_70_extracted <-raster::extract(x=precip_2070_total, y=coords)
 
 #append these to the site dataframe
 site_data_unique$precip_present<-precip_present_extracted
 site_data_unique$precip_50<-precip_50_extracted
+site_data_unique$precip_70<-precip_70_extracted
 
 #calculate precipitation manipulation in mm for studies
 site_data_unique$precip_change_study<-site_data_unique$precip_present+(site_data_unique$precip_present*(site_data_unique$perc_annual_dist/100))
@@ -51,11 +59,12 @@ site_data_unique$precip_change_study<-site_data_unique$precip_present+(site_data
 site_data_unique$precip_change_study_edited<-ifelse(site_data_unique$precip_change_study==0,0.1,site_data_unique$precip_change_study)
 
 #calculate difference in projected vs experimental changes in log response ratios
-site_data_unique$precip_exp_proj<-log(site_data_unique$precip_change_study_edited)-log(site_data_unique$precip_50)
+site_data_unique$precip_exp_proj50<-log(site_data_unique$precip_change_study_edited)-log(site_data_unique$precip_50)
+site_data_unique$precip_exp_proj70<-log(site_data_unique$precip_change_study_edited)-log(site_data_unique$precip_70)
 
 
 #test the difference of this to zero
-bias_model<-lme(precip_exp_proj~disturbance_type2-1,random=~1|Study_ID,data=site_data_unique)
+bias_model<-lme(precip_exp_proj50~disturbance_type2-1,random=~1|Study_ID,data=site_data_unique)
 summary(bias_model)
 
 #create new data for prediction
