@@ -442,7 +442,6 @@ rich_M17<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*exoskeleton+year.c
 rich_M18<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*exoskeleton+sqrt_inv_n_tilda-1,random=~1|Study_ID/Site_ID/obsID,data=richness_complete)
 rich_M19<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*exoskeleton+year.c+sqrt_inv_n_tilda-1,random=~1|Study_ID/Site_ID/obsID,data=richness_complete)
 
-
 #create a model selection table of these models
 rich_model_sel<-model.sel(rich_M1,rich_M2,rich_M3,rich_M4,rich_M5,rich_M6,rich_M7,rich_M8,rich_M9,rich_M10,rich_M11,rich_M12,
                           rich_M13,rich_M14,rich_M15,rich_M16,rich_M17,rich_M18,rich_M19)
@@ -527,7 +526,9 @@ richness_figure<-ggplot(new_data_rich,aes(perc_annual_dist,y=pred))+
   geom_hline(yintercept = 0,lty=2,alpha=0.3)+
   geom_vline(xintercept = 0,lty=2,alpha=0.3)+
   ylim(-2,1)+
-  geom_text(data=richness_sample_size,aes(x=30,y=1,label=k_label),colour="black")
+  geom_text(data=richness_sample_size,aes(x=30,y=1,label=k_label),colour="black")+
+  theme(axis.text = element_text(size=12),
+        axis.title = element_text(size=12))
 richness_figure
 ggsave("figures/for_paper/richness_precip.png",width = 12,height = 8,units = "cm",dpi = 300)
 
@@ -677,133 +678,3 @@ shannon_precip_figure
 shannon_combined<-plot_grid(shannon_year_figure,shannon_precip_figure,labels = c("(a)","(b)"))
 
 save_plot("figures/for_paper/shannon_change_combined.png",shannon_combined,base_height = 10,base_width = 18,units="cm",dpi=300)
-
-#######################################################
-#mapping analysis######################################
-#######################################################
-
-
-#read in precipitation data
-precip_current<-raster("data/spatial_data/climate/precip_current.tif")
-precip_2050<-raster("data/spatial_data/climate/precip_2050.tif")
-precip_2070<-raster("data/spatial_data/climate/precip_2070_worst.tif")
-
-#import forest data
-tree_cover<-landcover("trees",path="data/spatial_data/land_cover/esa_tree_cover.tif")
-#create SpatialPolygon the size of Europe
-eur_crop<-as(extent(-10,40,35,70),"SpatialPolygons")
-#set coordinate system to be the same for Europe polygon and precipitation data
-crs(eur_crop)<-crs(precip_current)
-#crop precipitation data to just Europe
-precip_current_crop<-crop(precip_current,eur_crop)
-precip_2050_crop<-crop(precip_2070,eur_crop)
-#calculate percentage change in precipitation in Europe between 2000 and 2070
-perc_change_crop<-(((precip_2050_crop-precip_current_crop)/precip_current_crop)*100)
-#convert this to a SpatRaster for later
-perc_change_crop<-rast(perc_change_crop)
-
-#crop forest data to just Europe
-tree_cover_crop<-crop(tree_cover,eur_crop)
-
-#reclassify so that forest is defined as areas where tree cover is >40%
-m<-c(-Inf,0.4,NA,0.4,1,1)
-rclmat <- matrix(m, ncol=3, byrow=TRUE)
-forest_40<-classify(tree_cover_crop,rclmat)
-plot(forest_40)
-
-res(forest_40)
-res(perc_change_crop)
-#resample tree cover to have the same resolution as precipitation data
-forest_resample<-terra::resample(forest_40,perc_change_crop)
-#crop precipitation change data so that it only represents changes in forest areas
-forest_precip<-forest_resample*perc_change_crop
-
-#turn this into a dataframe
-forest_precip_df<-as.data.frame(forest_precip,xy=TRUE)
-
-#subset the dataframe to just Spain to test model
-forest_precip_df_Spain<-subset(forest_precip_df,x>-10&x<40&y<70&y>36.5)
-forest_precip_df_Spain<-subset(forest_precip_df_Spain,!is.na(trees))
-
-ggplot(forest_precip_df_Spain,aes(x,y,fill=trees))+
-geom_tile()
-
-#make predictions for the map
-
-#rerun best model
-M12<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*Functional_group_size.y+
-                                        year.c+sqrt_inv_n_tilda-1,
-                                        random=~1|Study_ID/Site_ID/obsID,data=abundance_complete)
-#copy and save the model formula of the best model
-newform<-(~perc_annual_dist*Functional_group_size.y+year.c+sqrt_inv_n_tilda-1)
-
-#take values from map over which we want to generate predictions
-perc_annual_dist_raster<-forest_precip_df_Spain$trees
-
-#create dataframe with new data for predictions
-new_data_map<-data.frame(expand.grid(perc_annual_dist = perc_annual_dist_raster,
-                                     Functional_group_size.y=levels(as.factor(abundance_complete$Functional_group_size.y)),
-                                     year.c=mean(abundance_complete$year.c),
-                                     sqrt_inv_n_tilda=mean(abundance_complete$sqrt_inv_n_tilda)))
-
-#create a model matrix and remove the intercept
-predgrid_map<-model.matrix(newform,data=new_data_map)
-
-#predict onto the new model matrix
-mypreds_map<-predict.rma(M12,newmods=predgrid_map)
-
-#attach predictions to variables for plotting
-new_data_map$pred<-mypreds_map$pred
-new_data_map$ci.lb<-mypreds_map$ci.lb
-new_data_map$ci.ub<-mypreds_map$ci.ub
-new_data_map$pi.lb<-mypreds_map$pi.lb
-new_data_map$pi.ub<-mypreds_map$pi.ub
-
-#attach latitude and longitude
-new_data_map$lat<-forest_precip_df_Spain$y
-new_data_map$long<-forest_precip_df_Spain$x
-
-#draw figure
-#first get map of europe
-
-library(rworldmap)
-
-newmap <- getMap(resolution = "low")
-plot(newmap)
-
-plot(newmap,
-     xlim = c(-20, 59),
-     ylim = c(35, 71),
-     asp = 1
-)
-
-library(ggmap)
-europe.limits <- geocode(c("CapeFligely,RudolfIsland,Franz Josef Land,Russia",
-                           "Gavdos,Greece",
-                           "Faja Grande,Azores",
-                           "SevernyIsland,Novaya Zemlya,Russia")
-)
-europe.limits
-
-plot(newmap,
-     xlim = range(europe.limits$lon),
-     ylim = range(europe.limits$lat),
-     asp = 1
-)
-
-
-
-ggplot(new_data_map,aes(long,lat,fill=(exp(pred)-1)*100))+
-  geom_tile()+
-  scale_fill_gradient()+
-  facet_wrap(~Functional_group_size.y)+
-  theme_minimal()
-
-ggplot(new_data_map,aes(x=perc_annual_dist,y=pred))+
-  geom_point()+
-  facet_wrap(~Functional_group_size.y)
-
-
-ggplot(forest_precip_df,aes(x,y,fill=layer))+
-  geom_tile()
-
