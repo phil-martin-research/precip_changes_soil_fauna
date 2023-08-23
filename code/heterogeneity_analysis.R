@@ -3,7 +3,7 @@
 rm(list = ls())
 
 pacman::p_load(tidyverse,metafor,cowplot,orchaRd,ggbeeswarm,tidyr,ggthemes,sp,broom,lemon,MuMIn,glmulti,PerformanceAnalytics,GGally,gt,geodata,
-               ggmap,mapproj)
+               ggmap,mapproj,glmulti)
 
 #read in .csv files with soil fauna data
 abundance<- read_csv("data/abundance_data.csv")
@@ -14,35 +14,49 @@ shannon<- read_csv("data/shannon_data.csv")
 #1 - data tidying##############################################################
 ###############################################################################
 
-abundance%>%
-  group_by(Validity,perc_annual_dist,Functional_group_size.y,aridity,randomized)%>%
-  summarise(size_count=length(above_below))%>%
-  print(n=100)
+# create a unit-level random effect to model residual variance in metafor
+abundance$obsID <- 1:nrow(abundance)
+# mean-centering year of publication to help with interpretation
+abundance$year.c <- as.vector(scale(abundance$study_year, scale = F))
 
 #complete cases for the variable about percentage change in precipitation and body size
 abundance_complete<-abundance[complete.cases(abundance$perc_annual_dist,abundance$Functional_group_size.y,abundance$above_below,
-                                             abundance$exoskeleton),]
-#we lose 21 comparisons for abundance
+                                             abundance$exoskeleton,abundance$obsID,abundance$year.c),]
 
+# create a unit-level random effect to model residual variance in metafor
+richness$obsID <- 1:nrow(richness)
+# mean-centering year of publication to help with interpretation
+richness$year.c <- as.vector(scale(richness$study_year, scale = F))
+
+#we lose 21 comparisons for abundance
 richness_complete<-richness[complete.cases(richness$perc_annual_dist,
                                            richness$Functional_group_size.y,
                                            richness$above_below,
-                                           richness$exoskeleton),]
+                                           richness$exoskeleton,
+                                           richness$obsID,
+                                           richness$year.c),]
 #we lose 5 comparisons for richness
 
-shannon_complete<-shannon[complete.cases(shannon$perc_annual_dist,shannon$Functional_group_size.y,shannon$above_below,
-                                         shannon$exoskeleton),]
+# create a unit-level random effect to model residual variance in metafor
+shannon$obsID <- 1:nrow(shannon)
+# mean-centering year of publication to help with interpretation
+shannon$year.c <- as.vector(scale(shannon$study_year, scale = F))
+
+shannon_complete<-shannon[complete.cases(shannon$perc_annual_dist,
+                                         shannon$Functional_group_size.y,
+                                         shannon$above_below,
+                                         shannon$exoskeleton,
+                                         shannon$obsID,
+                                         shannon$year.c),]
 #we lose 2 comparisons for shannon wiener
 
+#allow model evalution with MuMIn package
+eval(metafor:::.MuMIn)
 
 ###############################################################################
 #1 - models of heterogeneity in response of abundance of soil and litter fauna#
 ###############################################################################
 
-# create a unit-level random effect to model residual variance in metafor
-abundance_complete$obsID <- 1:nrow(abundance_complete)
-# mean-centering year of publication to help with interpretation
-abundance_complete$year.c <- as.vector(scale(abundance_complete$study_year, scale = F))
 
 #test all models against each other
 
@@ -81,8 +95,6 @@ M15<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*exoskeleton+sqrt_inv_n_
 #17 - impacts of precipitation change is modified by whether organism has an exoskeleton or not plus year and small study
 M16<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*exoskeleton+year.c+sqrt_inv_n_tilda-1,random=~1|Study_ID/Site_ID/obsID,data=abundance_complete)
 
-eval(metafor:::.MuMIn)
-
 #create a model selection table of these models
 abun_model_sel<-model.sel(M1,M2,M3,M4,M5,M6,M7,M8,M9,M10,M11,M12,M13,M14,M15,M16)
 
@@ -93,27 +105,42 @@ abun_model_sel<-model.sel(M1,M2,M3,M4,M5,M6,M7,M8,M9,M10,M11,M12,M13,M14,M15,M16
 abundance_model_sel_df<-data.frame(abun_model_sel)
 abundance_model_sel_df$model<-row.names(abundance_model_sel_df)
 
-#calculate R2 for all models using a loop
-abundance_model_list<-list(M1,M2,M3,M4,M5,M6,M7,M8,M9,M10,M11,M12,M13,M14,M15,M16)
-abundance_model_list_names<-c("M1","M2","M3","M4","M5","M6","M7","M8","M9","M10","M11","M12","M13","M14","M15","M16")
-abundance_model_R2<-NULL
-for (i in 1:length(abundance_model_list)){
-  abundance_model_R2_temp<-data.frame(model=abundance_model_list_names[i],
-                                      R2=(sum(M0$sigma2) - sum(abundance_model_list[[i]]$sigma2)) / sum(M0$sigma2))
-  abundance_model_R2<-rbind(abundance_model_R2,abundance_model_R2_temp)
-}
-
-#merge R2 with other model descriptors
-abundance_model_sel_df2<-abundance_model_sel_df%>%
-  left_join(abundance_model_R2,"model")%>%
-  arrange(desc(weight))
-
 #save this model table
-abundance_model_sel_table<-abundance_model_sel_df2%>%
-  mutate(across(where(is.numeric), round, 3))%>%
+abundance_model_sel_table<-abundance_model_sel_df%>%
+  select(mods,df,logLik,AICc,delta,model)%>%
+  mutate(across(where(is.numeric), round, 2))%>%
   gt()
 #export this to a word file
 abundance_model_sel_table%>%gtsave("figures/for_paper/abundance_selection_table.docx")
+
+#subset to give top models
+abun_model_sel_sub<-subset(abun_model_sel, delta <= 2, recalc.weights=FALSE)
+
+#calculate model averaged coefficients
+abun_coefs<-model.avg(abun_model_sel_sub)
+summary_abun_coefs<-summary(abun_coefs)
+
+#save the full average coefficient matrix
+abun_coef_full<-data.frame(summary_abun_coefs$coefmat.full)
+
+#tidy up this table
+abun_coef_full$Variable<-row.names(abun_coef_full)
+abun_coef_full_table<-abun_coef_full%>%
+  relocate(Variable)%>%
+  mutate(Estimate=round(Estimate,4),
+         Std..Error=round(Std..Error,4),
+         z.value=round(z.value,4),
+         Pr...z..=round(Pr...z..,4))%>%
+  rename(SE=Std..Error,
+         p_value=Pr...z..)%>%
+  remove_rownames()%>%
+  mutate(Variable=str_replace(Variable,"Functional_group_size.y",""),
+         Variable=str_replace(Variable,"perc_annual_dist","Precipitation change"),
+         Variable=str_replace(Variable,"year.c","Decline effect"),
+         Variable=str_replace(Variable,"sqrt_inv_n_tilda","Small study size"))%>%
+  gt()
+  
+abun_coef_full_table%>%gtsave("figures/for_paper/abundance_coef_table.docx")
 
 
 #copy and save the model formula of the best model
@@ -123,8 +150,8 @@ M12_formula<-(~perc_annual_dist*Functional_group_size.y+year.c+sqrt_inv_n_tilda-
 new_data<-data.frame(expand.grid(
   perc_annual_dist = seq(min(abundance_complete$perc_annual_dist),max(abundance_complete$perc_annual_dist),0.1),
   Functional_group_size.y=levels(as.factor(abundance_complete$Functional_group_size.y)),
-  year.c=0,
-  sqrt_inv_n_tilda=0))
+  year.c=mean(abundance_complete$year.c),
+  sqrt_inv_n_tilda=mean(abundance_complete$sqrt_inv_n_tilda)))
 
 #create a model matrix and remove the intercept
 predgrid<-model.matrix(M12_formula,data=new_data)
@@ -171,7 +198,7 @@ ggplot(aes(x=perc_annual_dist,y=pred,colour=Functional_group_size,fill=Functiona
   geom_line(data=extrapolation_micro,lty=3,aes(x=perc_annual_dist,y=pred,colour=Functional_group_size))+
   geom_point(data=abundance_sub,aes(x=perc_annual_dist,y=lnrr_laj,size=1/v_lnrr_laj),alpha=0.25)+
   xlab("Change in annual precipitation (%)")+
-  ylab("Change in soil fauna abundance (log response ratio)")+
+  ylab("Change in soil fauna abundance\n(log response ratio)")+
   scale_color_manual(values = c("#02475f","#c3386b","#e0b500"))+
   scale_fill_manual(values = c("#02475f","#c3386b","#e0b500"))+
   theme(legend.position = "none")+
@@ -182,7 +209,207 @@ ggplot(aes(x=perc_annual_dist,y=pred,colour=Functional_group_size,fill=Functiona
   geom_text(data=sample_size_label,aes(x=150,y=4,label=k_label),colour="black")
 
 #save plot
-ggsave("figures/for_paper/abundance_precip_size.png",width = 20,height = 10,units = "cm",dpi = 300)
+ggsave("figures/for_paper/abundance_precip_size.png",width = 20,height = 8,units = "cm",dpi = 300)
+
+
+#make predictions for decline effect
+new_data_decline_ab<-data.frame(expand.grid(
+  perc_annual_dist = mean(abundance_complete$perc_annual_dist),
+  Functional_group_size.y=levels(as.factor(abundance_complete$Functional_group_size.y)),
+  year.c=seq(min(abundance_complete$year.c),max(abundance_complete$year.c)),
+  sqrt_inv_n_tilda=mean(abundance_complete$sqrt_inv_n_tilda)))
+
+#create a model matrix and remove the intercept
+predgrid_ab_decline<-model.matrix(M12_formula,data=new_data_decline_ab)
+
+#predict onto the new model matrix
+mypreds_ab_decline<-data.frame(predict.rma(M12,newmods=predgrid_ab_decline))
+
+#attach predictions to variables for plotting
+new_data_decline_ab <- cbind(new_data_decline_ab, mypreds_ab_decline[c("pred", "ci.lb", "ci.ub", "pi.lb", "pi.ub")])
+
+#plot predictions for decline effect
+new_data_decline_ab%>%
+  mutate(Functional_group_size=fct_relevel(Functional_group_size.y,"microfauna","mesofauna","macrofauna"))%>%
+  ggplot(aes(x=year.c+mean(abundance_sub$study_year),y=pred,colour=Functional_group_size,fill=Functional_group_size))+
+  geom_line()+
+  geom_ribbon(alpha=0.25,aes(ymax=ci.ub,ymin=ci.lb),colour=NA)+
+  geom_ribbon(alpha=0.25,aes(ymax=pi.ub,ymin=pi.lb),colour=NA)+
+  facet_rep_wrap(~Functional_group_size,repeat.tick.labels = TRUE)+
+  geom_point(data=abundance_sub,aes(x=study_year,y=lnrr_laj,size=1/v_lnrr_laj),alpha=0.25)+
+  xlab("Year of publicaton")+
+  ylab("Change in soil fauna abundance\n(log response ratio)")+
+  scale_color_manual(values = c("#02475f","#c3386b","#e0b500"))+
+  scale_fill_manual(values = c("#02475f","#c3386b","#e0b500"))+
+  theme(legend.position = "none")+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"))+
+  geom_hline(yintercept = 0,lty=2,alpha=0.3)
+
+#save plot
+ggsave("figures/for_paper/abundance_decline_effect.png",width = 20,height = 8,units = "cm",dpi = 300)
+
+#make predictions for small study effect
+new_data_study_size_ab<-data.frame(expand.grid(
+  perc_annual_dist = mean(abundance_complete$perc_annual_dist),
+  Functional_group_size.y=levels(as.factor(abundance_complete$Functional_group_size.y)),
+  year.c=mean(abundance_complete$year.c),
+  sqrt_inv_n_tilda=seq(min(abundance_complete$sqrt_inv_n_tilda),max(abundance_complete$sqrt_inv_n_tilda),0.01)))
+
+#create a model matrix and remove the intercept
+predgrid_ab_study<-model.matrix(M12_formula,data=new_data_study_size_ab)
+
+#predict onto the new model matrix
+mypreds_ab_study<-data.frame(predict.rma(M12,newmods=predgrid_ab_study))
+
+#attach predictions to variables for plotting
+new_data_study_size_ab <- cbind(new_data_study_size_ab, mypreds_ab_study[c("pred", "ci.lb", "ci.ub", "pi.lb", "pi.ub")])
+
+#plot predictions for decline effect
+new_data_study_size_ab%>%
+  mutate(Functional_group_size=fct_relevel(Functional_group_size.y,"microfauna","mesofauna","macrofauna"))%>%
+  ggplot(aes(x=sqrt_inv_n_tilda,y=pred,colour=Functional_group_size,fill=Functional_group_size))+
+  geom_line()+
+  geom_ribbon(alpha=0.25,aes(ymax=ci.ub,ymin=ci.lb),colour=NA)+
+  geom_ribbon(alpha=0.25,aes(ymax=pi.ub,ymin=pi.lb),colour=NA)+
+  facet_rep_wrap(~Functional_group_size,repeat.tick.labels = TRUE)+
+  geom_point(data=abundance_sub,aes(x=sqrt_inv_n_tilda,y=lnrr_laj,size=1/v_lnrr_laj),alpha=0.25)+
+  xlab("Study size")+
+  ylab("Change in soil fauna abundance\n(log response ratio)")+
+  scale_color_manual(values = c("#02475f","#c3386b","#e0b500"))+
+  scale_fill_manual(values = c("#02475f","#c3386b","#e0b500"))+
+  theme(legend.position = "none")+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"))+
+  geom_hline(yintercept = 0,lty=2,alpha=0.3)
+
+#save plot
+ggsave("figures/for_paper/abundance_study_size_effect.png",width = 20,height = 8,units = "cm",dpi = 300)
+
+
+#1.2 abundance models of different groups of mesofauna
+
+#filter data and reformat to allow comparison between acari and collembola
+mesofauna_abundance<-abundance_complete%>%
+  filter(Functional_group_size.y=="mesofauna")%>%
+  mutate(acari_collembola=if_else(Highest_taxonomic_resolution=="Mesostigmata"|
+                                 Highest_taxonomic_resolution=="Oribatida"|
+                                 Highest_taxonomic_resolution=="Acari"|
+                                 Highest_taxonomic_resolution=="Prostigmata","Acari",
+                         if_else(Highest_taxonomic_resolution=="Entomobryomorpha"|
+                                 Highest_taxonomic_resolution=="Poduromorpha"|
+                                 Highest_taxonomic_resolution=="Symphypleona"|
+                                 Highest_taxonomic_resolution=="Neelipleona","Collembola",Highest_taxonomic_resolution)))%>%
+  filter(acari_collembola=="Acari"|acari_collembola=="Collembola")
+
+
+
+mesofauna_M1<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist,random=~1|Study_ID/Site_ID/obsID,data=mesofauna_abundance)
+mesofauna_M2<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*acari_collembola-1,random=~1|Study_ID/Site_ID/obsID,data=mesofauna_abundance)
+mesofauna_M3<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*acari_collembola+year.c-1,random=~1|Study_ID/Site_ID/obsID,data=mesofauna_abundance)
+mesofauna_M4<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*acari_collembola+sqrt_inv_n_tilda-1,random=~1|Study_ID/Site_ID/obsID,data=mesofauna_abundance)
+mesofauna_M5<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*acari_collembola+year.c+sqrt_inv_n_tilda-1-1,random=~1|Study_ID/Site_ID/obsID,data=mesofauna_abundance)
+
+
+
+#create a model selection table of these models
+meso_abun_model_sel<-model.sel(mesofauna_M1,mesofauna_M2,mesofauna_M3,mesofauna_M4,mesofauna_M5)
+
+#create dataframe for all models
+meso_abundance_model_sel_df<-data.frame(meso_abun_model_sel)
+meso_abundance_model_sel_df$model<-row.names(meso_abundance_model_sel_df)
+
+#save this model table
+meso_abundance_model_sel_table<-meso_abundance_model_sel_df%>%
+  select(mods,df,logLik,AICc,delta,model)%>%
+  mutate(across(where(is.numeric), round, 2))%>%
+  gt()
+#export this to a word file
+meso_abundance_model_sel_table%>%gtsave("figures/for_paper/meso_abundance_selection_table.docx")
+
+#subset to give top models
+meso_abun_model_sel_sub<-subset(meso_abun_model_sel, delta <= 2, recalc.weights=FALSE)
+
+#calculate model averaged coefficients
+meso_abun_coefs<-model.avg(meso_abun_model_sel_sub)
+summary_meso_abun_coefs<-summary(meso_abun_coefs)
+
+#save the full average coefficient matrix
+meso_abun_coef_full<-data.frame(summary_meso_abun_coefs$coefmat.full)
+
+#tidy up this table
+meso_abun_coef_full$Variable<-row.names(meso_abun_coef_full)
+meso_abun_coef_full_table<-meso_abun_coef_full%>%
+  relocate(Variable)%>%
+  mutate(Estimate=round(Estimate,4),
+         Std..Error=round(Std..Error,4),
+         z.value=round(z.value,4),
+         Pr...z..=round(Pr...z..,4))%>%
+  rename(SE=Std..Error,
+         p_value=Pr...z..)%>%
+  remove_rownames()%>%
+  mutate(Variable=str_replace(Variable,"Functional_group_size.y",""),
+         Variable=str_replace(Variable,"perc_annual_dist","Precipitation change"),
+         Variable=str_replace(Variable,"year.c","Decline effect"),
+         Variable=str_replace(Variable,"sqrt_inv_n_tilda","Small study size"),
+         Variable=str_replace(Variable,"acari_collembolaAcari","Acari"),
+         Variable=str_replace(Variable,"acari_collembolaCollembola","Collembola"),
+         Variable=str_replace(Variable,"intrcpt","Intercept"))%>%
+  gt()
+
+meso_abun_coef_full_table%>%gtsave("figures/for_paper/meso_abundance_coef_table.docx")
+
+#produce a figure for the most parsimonious model
+
+#copy and save the model formula of the best model
+M4_formula<-(~perc_annual_dist*acari_collembola+sqrt_inv_n_tilda-1)
+
+#create dataframe with new data for predictions
+meso_new_data<-data.frame(expand.grid(
+  perc_annual_dist = seq(min(mesofauna_abundance$perc_annual_dist),max(mesofauna_abundance$perc_annual_dist),0.1),
+  acari_collembola=levels(as.factor(mesofauna_abundance$acari_collembola)),
+  year.c=mean(mesofauna_abundance$year.c),
+  sqrt_inv_n_tilda=mean(mesofauna_abundance$sqrt_inv_n_tilda)))
+
+#create a model matrix and remove the intercept
+predgrid<-model.matrix(M4_formula,data=meso_new_data)
+
+#predict onto the new model matrix
+mypreds<-data.frame(predict.rma(mesofauna_M4,newmods=predgrid))
+
+#attach predictions to variables for plotting
+meso_new_data <- cbind(meso_new_data, mypreds[c("pred", "ci.lb", "ci.ub", "pi.lb", "pi.ub")])
+
+#plot data for model
+
+
+#add data on sample size for each group
+sample_size_label<-mesofauna_abundance%>%
+  group_by(acari_collembola)%>%
+  summarise(k=length(yi),study_n=n_distinct(Study_ID))%>%
+  mutate(k_label=paste("k = ",k," (",study_n,")",sep = ""))
+
+#new version of size and annual change plot
+  ggplot(meso_new_data,aes(x=perc_annual_dist,y=pred,colour=acari_collembola,fill=acari_collembola))+
+  geom_line()+
+  geom_ribbon(alpha=0.25,aes(ymax=ci.ub,ymin=ci.lb),colour=NA)+
+  geom_ribbon(alpha=0.25,aes(ymax=pi.ub,ymin=pi.lb),colour=NA)+
+  facet_rep_wrap(~acari_collembola,repeat.tick.labels = TRUE)+
+  geom_point(data=mesofauna_abundance,aes(x=perc_annual_dist,y=lnrr_laj,size=1/v_lnrr_laj),alpha=0.25)+
+  xlab("Change in annual precipitation (%)")+
+  ylab("Change in soil fauna abundance (log response ratio)")+
+  theme(legend.position = "none")+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"))+
+  geom_hline(yintercept = 0,lty=2,alpha=0.3)+
+  geom_vline(xintercept = 0,lty=2,alpha=0.3)+
+  geom_text(data=sample_size_label,aes(x=150,y=4,label=k_label),colour="black")
+
+#save plot
+ggsave("figures/for_paper/collembola_acari.png",width = 20,height = 10,units = "cm",dpi = 300)
+ggsave("figures/for_paper/collembola_acari.pdf",width = 20,height = 10,units = "cm",dpi = 300)
+
+
 
 ###############################################################################
 #2 - models of heterogeneity in response of diversity of soil and litter fauna#
@@ -190,24 +417,8 @@ ggsave("figures/for_paper/abundance_precip_size.png",width = 20,height = 10,unit
 
 #2.1 - taxonomic diversity
 
-# create a unit-level random effect to model residual variance in metafor
-richness_complete$obsID <- 1:nrow(richness_complete)
-# mean-centering year of publication to help with interpretation
-richness_complete$year.c <- as.vector(scale(richness_complete$study_year, scale = F))
-
-#first a saturated model including all potential predictors
-M_sat_rich<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist+
-                                              Functional_group_size.y+
-                                              above_below+
-                                              exoskeleton+
-                                              year.c+
-                                              sqrt_inv_n_tilda-1,
-                                              random=~1|Study_ID/Site_ID/obsID,data=richness_complete)
-
-
 #to test models I don't want to build models with more that 4 parameters due 
 #to the small dataset (k=43) and the associated risk of overparameterisation
-
 
 #test all models against each other
 rich_M0<-rma.mv(lnrr_laj,v_lnrr_laj,random=~1|Study_ID/Site_ID/obsID,data=richness_complete,)
@@ -243,33 +454,41 @@ rich_model_sel<-model.sel(rich_M1,rich_M2,rich_M3,rich_M4,rich_M5,rich_M6,rich_M
 rich_model_sel_df<-data.frame(rich_model_sel)
 rich_model_sel_df$model<-row.names(rich_model_sel_df)
 
-#calculate R2 for all models using a loop
-rich_model_list<-list(rich_M1,rich_M2,rich_M3,rich_M4,rich_M5,rich_M6,rich_M7,rich_M8,rich_M9,rich_M10,rich_M11,rich_M12,
-                           rich_M13,rich_M14,rich_M15,rich_M16,rich_M17,rich_M18,rich_M19)
-rich_model_list_names<-c("rich_M1","rich_M2","rich_M3","rich_M4","rich_M5","rich_M6","rich_M7","rich_M8","rich_M9","rich_M10","rich_M11","rich_M12",
-                              "rich_M13","rich_M14","rich_M15","rich_M16","rich_M17","rich_M18","rich_M19")
-rich_model_R2<-NULL
-for (i in 1:length(rich_model_list)){
-  rich_model_R2_temp<-data.frame(model=rich_model_list_names[i],
-                                      R2=(sum(rich_M0$sigma2) - sum(rich_model_list[[i]]$sigma2)) / sum(rich_M0$sigma2))
-  rich_model_R2<-rbind(rich_model_R2,rich_model_R2_temp)
-}
-
-#set negative R2 values to zero
-rich_model_R2$R2<-ifelse(rich_model_R2$R2<0,0,rich_model_R2$R2)
-
-#merge R2 with other model descriptors
-rich_model_sel_df2<-rich_model_sel_df%>%
-  left_join(rich_model_R2,"model")%>%
-  arrange(desc(weight))
-
 #save this model table
-rich_model_sel_table<-rich_model_sel_df2%>%
-  mutate(across(where(is.numeric), round, 3))%>%
+richness_model_sel_table<-rich_model_sel_df%>%
+  select(mods,df,logLik,AICc,delta,model)%>%
+  mutate(across(where(is.numeric), round, 2))%>%
   gt()
 #export this to a word file
-rich_model_sel_table%>%gtsave("figures/for_paper/richness_selection_table.docx")
+richness_model_sel_table%>%gtsave("figures/for_paper/richness_selection_table.docx")
 
+#subset to give top models
+richness_model_sel_sub<-subset(rich_model_sel, delta <= 2, recalc.weights=TRUE)
+
+#calculate model averaged coefficients
+richness_coefs<-model.avg(richness_model_sel_sub)
+summary_richness_coefs<-summary(richness_coefs)
+
+#save the full averaged coefficient matrix
+richness_coef_full<-data.frame(summary_richness_coefs$coefmat.full)
+
+#tidy up this table
+richness_coef_full$Variable<-row.names(richness_coef_full)
+richness_coef_full_table<-richness_coef_full%>%
+  relocate(Variable)%>%
+  mutate(Estimate=round(Estimate,4),
+         Std..Error=round(Std..Error,4),
+         z.value=round(z.value,4),
+         Pr...z..=round(Pr...z..,4))%>%
+  rename(SE=Std..Error,
+         p_value=Pr...z..)%>%
+  remove_rownames()%>%
+  mutate(Variable=str_replace(Variable,"perc_annual_dist","Precipitation change"),
+         Variable=str_replace(Variable,"year.c","Decline effect"),
+         Variable=str_replace(Variable,"intrcpt","Intercept"))%>%
+  gt()
+
+richness_coef_full_table%>%gtsave("figures/for_paper/richness_coef_table.docx")
 
 #save model formula
 M4_formula<-(~perc_annual_dist)
@@ -295,20 +514,20 @@ richness_sample_size<-richness_complete%>%
 
 #plot the results of the predictions
 richness_figure<-ggplot(new_data_rich,aes(perc_annual_dist,y=pred))+
-  geom_line()+
-  geom_ribbon(alpha=0.25,aes(ymax=ci.ub,ymin=ci.lb),colour=NA)+
-  geom_ribbon(alpha=0.25,aes(ymax=pi.ub,ymin=pi.lb),colour=NA)+
-  geom_point(data=richness_complete,aes(x=perc_annual_dist,y=lnrr_laj,size=1/v_lnrr_laj),alpha=0.2)+
+  geom_line(colour="#2596be")+
+  geom_ribbon(alpha=0.25,aes(ymax=ci.ub,ymin=ci.lb),colour=NA,fill="#2596be")+
+  geom_ribbon(alpha=0.25,aes(ymax=pi.ub,ymin=pi.lb),colour=NA,fill="#2596be")+
+  geom_point(data=richness_complete,aes(x=perc_annual_dist,y=lnrr_laj,size=1/v_lnrr_laj),colour="#2596be",alpha=0.2)+
   theme_cowplot()+
   labs(x="Change in annual precipitation (%)",
-       y="Change in soil fauna taxonomic richness\n(log response ratio)")+
+       y="Change in soil fauna taxonomic\nrichness(log response ratio)")+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_line(colour = "black"))+
   theme(legend.position = "none")+
   geom_hline(yintercept = 0,lty=2,alpha=0.3)+
   geom_vline(xintercept = 0,lty=2,alpha=0.3)+
   ylim(-2,1)+
-  geom_text(data=richness_sample_size,aes(x=-90,y=1,label=k_label),colour="black")
+  geom_text(data=richness_sample_size,aes(x=30,y=1,label=k_label),colour="black")
 richness_figure
 ggsave("figures/for_paper/richness_precip.png",width = 12,height = 8,units = "cm",dpi = 300)
 
@@ -316,24 +535,8 @@ ggsave("figures/for_paper/richness_precip.png",width = 12,height = 8,units = "cm
 
 #2.2 - shannon diversity
 
-# create a unit-level random effect to model residual variance in metafor
-shannon_complete$obsID <- 1:nrow(shannon_complete)
-# mean-centering year of publication to help with interpretation
-shannon_complete$year.c <- as.vector(scale(shannon_complete$study_year, scale = F))
-
-#first a saturated model including all potential predictors
-M_sat_shannon<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist+
-                     Functional_group_size.y+
-                     above_below+
-                     exoskeleton+
-                     year.c+
-                     sqrt_inv_n_tilda-1,
-                   random=~1|Study_ID/Site_ID/obsID,data=shannon_complete)
-
-
 #to test models I don't want to build models with more that 4 parameters due 
 #to the small dataset (k=38) and the associated risk of overparameterisation
-
 
 #test all models against each other
 shannon_M0<-rma.mv(lnrr_laj,v_lnrr_laj,random=~1|Study_ID/Site_ID/obsID,data=shannon_complete)
@@ -358,13 +561,122 @@ shannon_M18<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*exoskeleton+sqr
 shannon_M19<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*exoskeleton+year.c+sqrt_inv_n_tilda-1,random=~1|Study_ID/Site_ID/obsID,data=shannon_complete)
 
 
-#check to see which model is the most parsimonious 
-AIC.rma(shannon_M0,shannon_M1,shannon_M2,shannon_M3,shannon_M4,shannon_M5,shannon_M6,
-        shannon_M7,shannon_M8,shannon_M9,shannon_M10,shannon_M11,shannon_M12,shannon_M13,
-        shannon_M14,shannon_M15,shannon_M16,shannon_M17,shannon_M19)
+#create a model selection table of these models
+shannon_model_sel<-model.sel(shannon_M1,shannon_M2,shannon_M3,shannon_M4,shannon_M5,shannon_M6,
+                             shannon_M7,shannon_M8,shannon_M9,shannon_M10,shannon_M11,shannon_M12,shannon_M13,
+                             shannon_M14,shannon_M15,shannon_M16,shannon_M17,shannon_M19)
 
-#these results support the hypothesis that there has been a change in impact of drought studies over time
-#however ecologically, it's not very interesting!
+#create dataframe for all models
+shannon_model_sel_df<-data.frame(shannon_model_sel)
+shannon_model_sel_df$model<-row.names(shannon_model_sel)
+
+
+#save this model table
+shannon_model_sel_table<-shannon_model_sel_df%>%
+  select(mods,df,logLik,AICc,delta,model)%>%
+  mutate(across(where(is.numeric), round, 2))%>%
+  gt()
+#export this to a word file
+shannon_model_sel_table%>%gtsave("figures/for_paper/shannon_selection_table.docx")
+
+#subset to give top models
+shannon_model_sel_sub<-subset(shannon_model_sel, delta <= 2, recalc.weights=TRUE)
+
+#calculate model averaged coefficients
+shannon_coefs<-model.avg(shannon_model_sel_sub)
+summary_shannon_coefs<-summary(shannon_coefs)
+
+#save the full averaged coefficient matrix
+shannon_coef_full<-data.frame(summary_shannon_coefs$coefmat.full)
+
+#tidy up this table
+shannon_coef_full$Variable<-row.names(shannon_coef_full)
+shannon_coef_full_table<-shannon_coef_full%>%
+  relocate(Variable)%>%
+  mutate(Estimate=round(Estimate,4),
+         Std..Error=round(Std..Error,4),
+         z.value=round(z.value,4),
+         Pr...z..=round(Pr...z..,4))%>%
+  rename(SE=Std..Error,
+         p_value=Pr...z..)%>%
+  remove_rownames()%>%
+  mutate(Variable=str_replace(Variable,"perc_annual_dist","Precipitation change"),
+         Variable=str_replace(Variable,"year.c","Decline effect"),
+         Variable=str_replace(Variable,"intrcpt","Intercept"))%>%
+  gt()
+
+shannon_coef_full_table%>%gtsave("figures/for_paper/shannon_coef_table.docx")
+
+#these results offer weak support for the hypothesis that there has been a change in impact of drought studies over time
+
+#plot figure showing these results
+
+#save model formula
+M5_formula<-(~perc_annual_dist+year.c)
+
+#create new dataset for predictions for year
+new_data_shannon_year<-data.frame(perc_annual_dist=mean(shannon_complete$perc_annual_dist),
+                             year.c=seq(min(shannon_complete$year.c),max(shannon_complete$year.c),0.1))
+
+#create a model matrix and remove the intercept
+predgrid_shannon_year<-model.matrix(M5_formula,data=new_data_shannon_year)[,-1]
+
+#predict onto the new model matrix
+mypreds_shannon_year<-data.frame(predict.rma(shannon_M5,newmods=predgrid_shannon_year))
+
+#attach predictions to variables for plotting
+new_data_shannon_year <- cbind(new_data_shannon_year, mypreds_shannon_year[c("pred", "ci.lb", "ci.ub", "pi.lb", "pi.ub")])
+
+new_data_shannon_year$study_year<-new_data_shannon_year$year.c+mean(shannon_complete$study_year)
+
+#plot the results of the predictions
+shannon_year_figure<-ggplot(new_data_shannon_year,aes(study_year,y=pred))+
+  geom_line(colour="#2596be")+
+  geom_ribbon(alpha=0.25,aes(ymax=ci.ub,ymin=ci.lb),colour=NA,fill="#2596be")+
+  geom_ribbon(alpha=0.25,aes(ymax=pi.ub,ymin=pi.lb),colour=NA,fill="#2596be")+
+  geom_point(data=shannon_complete,aes(x=study_year,y=lnrr_laj,size=1/v_lnrr_laj),colour="#2596be",alpha=0.2)+
+  theme_cowplot()+
+  labs(x="Year of publication",
+       y="Change in soil fauna Shannon\ndiversity(log response ratio)")+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"))+
+  theme(legend.position = "none")+
+  geom_hline(yintercept = 0,lty=2,alpha=0.3)
+shannon_year_figure
+
+#and now a figure for precipitation impact
+#create new dataset for predictions for year
+new_data_shannon_precip<-data.frame(perc_annual_dist=seq(min(shannon_complete$perc_annual_dist),max(shannon_complete$perc_annual_dist),1),
+                                  year.c=mean(shannon_complete$year.c))
+
+#create a model matrix and remove the intercept
+predgrid_shannon_precip<-model.matrix(M5_formula,data=new_data_shannon_precip)[,-1]
+
+#predict onto the new model matrix
+mypreds_shannon_precip<-data.frame(predict.rma(shannon_M5,newmods=predgrid_shannon_precip))
+
+#attach predictions to variables for plotting
+new_data_shannon_precip<-cbind(new_data_shannon_precip, mypreds_shannon_precip[c("pred", "ci.lb", "ci.ub", "pi.lb", "pi.ub")])
+
+#plot the results of the predictions
+shannon_precip_figure<-ggplot(new_data_shannon_precip,aes(perc_annual_dist,y=pred))+
+  geom_line(colour="#fcba03")+
+  geom_ribbon(alpha=0.25,aes(ymax=ci.ub,ymin=ci.lb),colour=NA,fill="#fcba03")+
+  geom_ribbon(alpha=0.25,aes(ymax=pi.ub,ymin=pi.lb),colour=NA,fill="#fcba03")+
+  geom_point(data=shannon_complete,aes(x=perc_annual_dist,y=lnrr_laj,size=1/v_lnrr_laj),colour="#fcba03",alpha=0.2)+
+  theme_cowplot()+
+  labs(x="Change in precipitation (%)",
+       y="Change in soil fauna Shannon\ndiversity(log response ratio)")+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"))+
+  theme(legend.position = "none")+
+  geom_hline(yintercept = 0,lty=2,alpha=0.3)
+shannon_precip_figure
+
+#stick these figures together
+shannon_combined<-plot_grid(shannon_year_figure,shannon_precip_figure,labels = c("(a)","(b)"))
+
+save_plot("figures/for_paper/shannon_change_combined.png",shannon_combined,base_height = 10,base_width = 18,units="cm",dpi=300)
 
 #######################################################
 #mapping analysis######################################

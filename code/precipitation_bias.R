@@ -4,7 +4,7 @@ rm(list = ls())
 
 
 #load the packages
-pacman::p_load(raster,tidyverse,ggpubr,geodata,ggbeeswarm,nlme,lme4,bernr,cowplot)
+pacman::p_load(raster,tidyverse,ggpubr,geodata,ggbeeswarm,nlme,lme4,bernr,cowplot,scales,ggtext)
 
 #import site data
 site_data<-read.csv("data/fauna_spatial_data.csv")
@@ -73,34 +73,9 @@ new_data<-data.frame(disturbance_type2=unique(site_data_unique$disturbance_type2
 #predict response
 bias_preds<-bolker_ci(bias_model,new_data,pred_int = TRUE,conf_level = 0.95)
 
-#violin plot of this data
-ggplot(site_data_unique,aes(x=disturbance_type2,y=precip_exp_proj,fill=disturbance_type2))+
-  geom_violin(trim = TRUE)+
-  geom_beeswarm(alpha=0.6)+
-  geom_hline(yintercept = 0,lty=2)+
-  theme_cowplot()+
-  scale_fill_manual("Disturbance type",values = c("#1f9e89","#fde725"))+
-  scale_color_manual("Disturbance type",values = c("#1f9e89","#fde725"))+
-  xlab("Disturbance type")+
-  ylab("Difference between study\nand projected precipitation (lnRR)")+
-  theme(legend.position = "none") 
-
-ggsave("figures/for_paper/precipitation_bias.png",width = 12,height=10,units = "cm",dpi = 300)
-
-#histogram plot of the data
-ggplot(site_data_unique,aes(x=precip_exp_proj,fill=disturbance_type2))+
-  geom_histogram()+
-  geom_vline(xintercept = 0,lty=2)+
-  theme_cowplot()+
-  scale_fill_manual("Disturbance type",values = c("#1f9e89","#fde725"))+
-  scale_color_manual("Disturbance type",values = c("#1f9e89","#fde725"))+
-  xlab("Disturbance type")+
-  ylab("Difference between study\nand projected precipitation (lnRR)")+
-  theme(legend.position = "none") 
-
 #error plot of this
-ggplot(bias_preds,aes(pred,disturbance_type2,colour=disturbance_type2))+
-  geom_errorbarh(aes(xmin=ci_l,xmax=ci_h),height=0.2,size=1,alpha=0.8)+
+precip_bias_plot<-ggplot(bias_preds,aes(pred,disturbance_type2,colour=disturbance_type2))+
+  geom_errorbarh(aes(xmin=ci_l,xmax=ci_h),height=0.2,linewidth=1,alpha=0.8)+
   geom_point(size=4)+
   scale_color_manual("Disturbance type",values = c("#1f9e89","#fde725"))+
   geom_vline(xintercept = 0,lty=2)+
@@ -110,108 +85,39 @@ ggplot(bias_preds,aes(pred,disturbance_type2,colour=disturbance_type2))+
   theme(text=element_text(size=12),
       axis.text=element_text(size=10),
       legend.position = "none")
-
+precip_bias_plot
 ggsave("figures/for_paper/precipitation_bias_error_plot.png",width = 12,height=10,units = "cm",dpi = 300)
 
 
 
-#need to think about how to display all of this best
+#bias associated with plot area and body size
+site_data<-read.csv("data/site_data_2023_06_07.csv")
+fact_table<-read.csv("data/fact_table_2023_08_06.csv")
+
+site_bias_data<-fact_table%>%left_join(site_data,"Site_ID")%>%
+                             filter(use_for_first_analysis==TRUE,!is.na(Functional_group_size))%>%
+                             distinct(Site_ID,plot_area.y,perc_annual_dist,Functional_group_size,exp_obs)%>%
+                             filter(Functional_group_size!="",exp_obs=="experimental")
 
 
-###########################
-#below this is Leo's code##
-###########################
+site_bias_data%>%
+  group_by(Functional_group_size)%>%
+  summarise(med_area=median(plot_area.y,na.rm=TRUE))
 
-###########################################
-#1 - get data and format###################
-###########################################
-?worldclim_global
+names(site_bias_data)
 
-
-#get environmental data
-env_2050 <- getData('CMIP5', var="bio", res=2.5, model="HE", year=50, rcp=85)
-env_2070 <- getData('CMIP5', var="bio", res=2.5, model="HE", year=70, rcp=85)
-env <- getData("worldclim", var="bio", res=2.5)
-
-# name data 
-bioclim_names <-
-  c("Annual_Mean_Temp","Mean_Diurnal_Range","Isothermality","Temp_Seasonality",
-    "Max_Temp_Warmest Month", "Min_Temp_Coldest_Month", "Temp_Annual_Range",
-    "Mean_Temp_Wettest_Quarter","Mean_Temp_Driest_Quarter","Mean_Temp_Warmest_Quarter",
-    "Mean_Temp_Coldest_Quarter","Annual_Precip","Precip_Wettest_Month",
-    "Precip_Driest_Month","Precip_Seasonality","Precip_Wettest_Quarter",
-    "Precip_Driest_Quarter","Precip_Warmest_Quarter","Precip_Coldest_Quarter"
-  )
-
-names(env) <- bioclim_names
-names(env_2050)<- bioclim_names
-
-#find difference in annual precipitation 
-precip_2050 <- env_2050[[12]]-env[[12]]
-precip_2070 <- env_2070[[12]]-env[[12]]
-perc_2050 <- (precip_2050/env[[12]])*100
-
-# extract temp and precip at each site 
-coords<-data.frame(lon=site_data_unique$lon, lat=site_data_unique$lat)
-coordinates(coords)<-c("lon","lat")
-
-#extract data from raster and append to df
-precip_50 <-data.frame(raster::extract(x=precip_2050, y=coords))
-precip_70 <-data.frame(raster::extract(x=precip_2070, y=coords))
-
-col<- precip_50[[1]]
-site_data_unique$precip_50<-col
-col<-precip_70[[1]]
-site_data_unique$precip_70<-col
-
-#convert to a percentage from -100 to 100
-site_data$perc_inc <- (site_data$precip_50/site_data$precip)*100
-site_data$perc_inc70 <- (site_data$precip_70/site_data$precip)*100
-site_data$perc_annual_dist <- ifelse(site_data$perc_annual_dist>100, site_data$perc_annual_dist-100, site_data$perc_annual_dist*(-1))
-
-#create df with just one point for each magnitude of disturbance at each site
-Site_unique<-distinct(site_data, Site_ID,perc_annual_dist, .keep_all = TRUE)
-fit<-lm(perc_inc70~perc_annual_dist, data = site_data)
-summary(fit)
-
-#plot data
-a <- ggplot(Site_unique, aes(x = perc_inc, y= perc_annual_dist))+
-  geom_point(alpha = 0.2,size =3)+
-  xlim(-100,100)+
+plot_bias_plot<-ggplot(site_bias_data,aes(Functional_group_size,plot_area.y,fill=Functional_group_size,colour=Functional_group_size))+
+  geom_boxplot(alpha=0.5)+
   theme_cowplot()+
-  geom_vline(xintercept = 0, linetype = "dotted")+
-  geom_hline(yintercept = 0, linetype = "dotted")+
-  ggtitle("A")+
-  xlab("Projected precipitation change (%)")+
-  ylab("Experimental precipitation change (%)")+
-  annotate("rect", xmin = -Inf, xmax = 0, ymin = 0, ymax = Inf, 
-           alpha = .2)+
-  annotate("rect", xmin = 0, xmax = Inf, ymin = 0, ymax = -Inf, 
-           alpha = .2)+
-  annotate(geom="text", x=-70, y=130, label="2050",color="black")+
-  geom_abline(intercept = 0, slope = 1)+
-  geom_vline(xintercept = 0, linetype = 2)+
-  geom_hline(yintercept = 0, linetype = 2)
+  scale_x_discrete(limits=rev)+
+  labs(x="Body size",y=bquote("Plot area "(m^2)))+
+  scale_color_manual(values = c("#e0b500","#c3386b","#02475f"))+
+  scale_fill_manual(values = c("#e0b500","#c3386b","#02475f"))+
+  theme(legend.position="none",
+        text=element_text(size=12),
+        axis.text=element_text(size=10))
 
-b<- ggplot(Site_unique, aes(x= perc_inc70, y = perc_annual_dist))+
-  geom_point(alpha=0.2,size =3)+
-  xlim(-100,100)+
-  theme_cowplot()+
-  geom_vline(xintercept = 0, linetype = "dotted")+
-  geom_hline(yintercept = 0, linetype = "dotted")+
-  ggtitle("B")+
-  xlab("Projected precipitation change (%)")+
-  ylab("Experimental precipitation change (%)")+
-  annotate("rect", xmin = -Inf, xmax = 0, ymin = 0, ymax = Inf, 
-           alpha = .2)+
-  annotate("rect", xmin = 0, xmax = Inf, ymin = 0, ymax = -Inf, 
-           alpha = .2)+
-  annotate(geom="text", x=-70, y=130, label="2070",color="black")+
-  geom_abline(intercept = 0, slope = 1)+
-  geom_vline(xintercept = 0, linetype = 2)+
-  geom_hline(yintercept = 0, linetype = 2)
-
-
-figure<- ggarrange(a+ rremove("ylab")+ rremove("xlab"),b + rremove("xlab")+ rremove("ylab"),nrow = 1,common.legend = TRUE, legend = "right")
-annotate_figure(figure, left = text_grob("Precipitation change experimental (%)", rot = 90, vjust = 1, gp = gpar(cex = 1.3)),
-                bottom = text_grob("Precipitation change projected (%)"))
+#combine the two plots
+bias_plots<-plot_grid(precip_bias_plot,plot_bias_plot,labels = c("(a)","(b)"))
+save_plot("figures/for_paper/bias_plots.png",bias_plots,base_height = 10,base_width = 20,units="cm",dpi=300)
+save_plot("figures/for_paper/bias_plots.pdf",bias_plots,base_height = 10,base_width = 20,units="cm",dpi=300)
