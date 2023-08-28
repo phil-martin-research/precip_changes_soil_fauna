@@ -6,7 +6,7 @@ rm(list = ls())
 
 
 #load packages
-pacman::p_load(tidyverse,tidyverse,cowplot,metafor,orchaRd,ggbeeswarm,tidyr,insight,gt,gtExtras,webshot,scales,egg)
+pacman::p_load(tidyverse,tidyverse,cowplot,metafor,orchaRd,ggbeeswarm,tidyr,insight,gt,gtExtras,webshot,scales,egg,lemon)
 
 ######################################
 #function to calculate I2 for multilevel models
@@ -103,13 +103,9 @@ prediction_summary_perc<-prediction_summary%>%
 
 #first produce a plot for abundance
 
-
-
-
 #Organise data into one dataset
 
 fauna_data<-rbind(abundance,richness,shannon)
-
 
 #relabel disturbance types
 fauna_data<-fauna_data%>%
@@ -157,7 +153,8 @@ effect_size_label<-prediction_summary_perc%>%
             mutate(perc_change=round(perc_pred,0),
             change_label=if_else(perc_change<0,
                                  paste(perc_change,"%",sep=""),
-                                 paste("+",perc_change,"%",sep="")))
+                                 paste("+",perc_change,"%",sep="")),
+            change_label=if_else(sign(per_ci.lb)==sign(per_ci.ub),paste(change_label,"*",sep = ""),change_label))
 effect_size_label$lnrr_laj<-c(1.3,1.3,0.3,0.3,0.05,0.05)
 
 #add these to the plot
@@ -180,4 +177,4 @@ facet_summary_plot_with_label2<-facet_summary_plot_with_label1+
 
 tag_facet(facet_summary_plot_with_label2)
 
-ggsave("figures/for_paper/abun_div_summary_facet.png",width = 12,height = 20,units = "cm",dpi = 300)
+ggsave("figures/for_paper/abun_div_summary_facet.png",width = 13,height = 20,units = "cm",dpi = 300)
