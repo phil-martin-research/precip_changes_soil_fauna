@@ -28,11 +28,6 @@ fact_table<-fact_table%>%
   left_join(crit_appraisal,by="Study_ID")%>%
   left_join(taxonomy,by="Highest_taxonomic_resolution")
 
-ggplot(fact_table,aes(perc_annual_dist))+
-  geom_histogram(binwidth = 5)+
-  facet_wrap(~disturbance_type)
-
-
 #clean dataset
 fact_table <- fact_table %>%
   mutate(
@@ -88,6 +83,14 @@ fact_table<-fact_table%>%
 #extract year of study
 fact_table$study_year<-parse_number(fact_table$Study_ID,trim_ws = TRUE)
 
+#check the number of rows for which the sample size is missing
+#and for which measure of variability is missing
+fact_table%>%
+  group_by(use_for_first_analysis)%>%
+  summarise(perc_n_missing=(sum(is.na(control_n)&is.na(dist_n))/length(disturbance_av))*100,
+            perc_var_missing=(sum(is.na(control_var)&is.na(dist_var))/length(disturbance_av))*100)
+
+names(fact_table)
 ################################################
 #2 - data imputation############################
 ################################################
@@ -238,3 +241,6 @@ soil_fauna_spatial_data<-soil_fauna_rr%>%filter(use_for_first_analysis==TRUE)%>%
                           
 #save this as a .csv
 write.csv(soil_fauna_spatial_data,"data/fauna_spatial_data.csv")
+
+
+

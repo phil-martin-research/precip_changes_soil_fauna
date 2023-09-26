@@ -16,8 +16,8 @@ precip_diff<-data.frame(dist_type=c("Precipitation\nreduction","Precipitation\ni
 
 #plot this
 precip_diff_plot<-ggplot(precip_diff,aes(x=es,y=dist_type,colour=dist_type))+
-  geom_point(size=3,shape=21,colour="black")+
   geom_pointrange(data=precip_diff,aes(xmin=lci,xmax=uci))+
+  geom_point(size=3,shape=21,colour="black")+
   geom_vline(xintercept = 0,lty=2)+
   theme_cowplot()+
   labs(x="Effect size",y="")+
@@ -88,7 +88,9 @@ precip_size_change<-precip_size_change%>%mutate(faunal_size=fct_relevel(faunal_s
 #make micro and mesofauna more responsive to change than macrofauna
 precip_size_change$yi<-ifelse(precip_size_change$faunal_size=="Macrofauna",
                               precip_size_change$precip_change*0.1,
-                              precip_size_change$precip_change*0.5)
+                              ifelse(precip_size_change$faunal_size=="Mesofauna",
+                                     precip_size_change$precip_change*0.2,
+                                     precip_size_change$precip_change*0.3))
 
 #create text labels
 size_text<-data.frame(precip_change=c(0,0,0),faunal_size=c("Microfauna","Mesofauna","Macrofauna"),

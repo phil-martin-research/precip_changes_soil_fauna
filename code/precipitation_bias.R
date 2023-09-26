@@ -72,6 +72,8 @@ new_data<-data.frame(disturbance_type2=unique(site_data_unique$disturbance_type2
 
 #predict response
 bias_preds<-bolker_ci(bias_model,new_data,pred_int = TRUE,conf_level = 0.95)
+bias_preds$perc_pred<-(exp(bias_preds$pred)-1)*100
+bias_preds$perc_pred_label<-paste(round(bias_preds$perc_pred),"%",sep="")
 
 #error plot of this
 precip_bias_plot<-ggplot(bias_preds,aes(pred,disturbance_type2,colour=disturbance_type2))+
@@ -82,6 +84,7 @@ precip_bias_plot<-ggplot(bias_preds,aes(pred,disturbance_type2,colour=disturbanc
   theme_cowplot()+
   labs(x="Difference between study and\nprojected precipitation (lnRR)",
        y="Disturbance type")+
+  geom_text(aes(x=c(-2,2),y=disturbance_type2,label=perc_pred_label),hjust   = 0.3,vjust   = -2,colour="black")+
   theme(text=element_text(size=12),
       axis.text=element_text(size=10),
       legend.position = "none")

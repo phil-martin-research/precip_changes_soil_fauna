@@ -66,8 +66,9 @@ for (i in 1:length(fauna_list)){
     qe<-model_list[[y]]$QE
     qe_p<-model_list[[y]]$QEp
     I2<-I2_multi(model_list[[y]])
+    k<-model_list[[y]]$k.all
     sens_temp<-data.frame(disturbance=disturbances[i],outcome=outcomes[i],
-                          model_type=model_type[y],params,qe,qe_p,I2)
+                          model_type=model_type[y],params,k,qe,qe_p,I2)
     sensitivity_summary<-rbind(sensitivity_summary,sens_temp)
   }
   #create predictions based on models
@@ -76,12 +77,13 @@ for (i in 1:length(fauna_list)){
   prediction_summary<-rbind(prediction_summary,temp_pred2)
 }
   
-
 #combine tables of sensitivity analyses into one big table
 sensitivity_table <- sensitivity_summary%>%
                      mutate(across(where(is.numeric), round, 3))%>%
+                     mutate(I2=round(I2,0))%>%
                      gt()
-#expord this to a word file
+
+#export this to a word file
 sensitivity_table%>%gtsave("figures/for_paper/summary_sensitivity_table.docx")
 
 

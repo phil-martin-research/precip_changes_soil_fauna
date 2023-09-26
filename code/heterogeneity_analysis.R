@@ -53,6 +53,8 @@ shannon_complete<-shannon[complete.cases(shannon$perc_annual_dist,
 #allow model evalution with MuMIn package
 eval(metafor:::.MuMIn)
 
+abundance_complete$arid_class<-ifelse(abundance_complete$aridity>0.65,"Humid","Dry")
+
 ###############################################################################
 #1 - models of heterogeneity in response of abundance of soil and litter fauna#
 ###############################################################################
@@ -94,9 +96,17 @@ M14<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*exoskeleton+year.c-1,ra
 M15<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*exoskeleton+sqrt_inv_n_tilda-1,random=~1|Study_ID/Site_ID/obsID,data=abundance_complete)
 #17 - impacts of precipitation change is modified by whether organism has an exoskeleton or not plus year and small study
 M16<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*exoskeleton+year.c+sqrt_inv_n_tilda-1,random=~1|Study_ID/Site_ID/obsID,data=abundance_complete)
+#18 - impacts of precipitation change is modified by whether ecosystem is humid or dry
+M17<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*arid_class-1,random=~1|Study_ID/Site_ID/obsID,data=abundance_complete)
+#19 - impacts of precipitation change is modified by whether ecosystem is humid or dry plus year effect
+M18<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*arid_class+year.c-1,random=~1|Study_ID/Site_ID/obsID,data=abundance_complete)
+#20 - impacts of precipitation change is modified by whether ecosystem is humid or dry plus small study effect
+M19<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*arid_class+sqrt_inv_n_tilda-1,random=~1|Study_ID/Site_ID/obsID,data=abundance_complete)
+#21 - impacts of precipitation change is modified by whether ecosystem is humid or dry plus year and small study
+M20<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*arid_class+year.c+sqrt_inv_n_tilda-1,random=~1|Study_ID/Site_ID/obsID,data=abundance_complete)
 
 #create a model selection table of these models
-abun_model_sel<-model.sel(M1,M2,M3,M4,M5,M6,M7,M8,M9,M10,M11,M12,M13,M14,M15,M16)
+abun_model_sel<-model.sel(M1,M2,M3,M4,M5,M6,M7,M8,M9,M10,M11,M12,M13,M14,M15,M16,M17,M18,M19,M20)
 
 #M12 is the best model that includes an interaction between functional group size and change in precipitation
 #as well as correction for year effect and small study effect
@@ -678,3 +688,12 @@ shannon_precip_figure
 shannon_combined<-plot_grid(shannon_year_figure,shannon_precip_figure,labels = c("(a)","(b)"))
 
 save_plot("figures/for_paper/shannon_change_combined.png",shannon_combined,base_height = 10,base_width = 18,units="cm",dpi=300)
+
+
+
+########################
+#data exploration here##
+########################
+
+abundance$arid_class<-ifelse(abundance$aridity>0.65,"Humid","Dry")
+
