@@ -185,8 +185,6 @@ abundance_sub%>%
 
 new_data_micro<-subset(new_data,Functional_group_size.y=="microfauna"&perc_annual_dist<=100)
 new_data_meso<-subset(new_data,Functional_group_size.y!="microfauna")
-extrapolation_micro<-subset(new_data,Functional_group_size.y=="microfauna"&perc_annual_dist>100)
-extrapolation_micro$Functional_group_size<-extrapolation_micro$Functional_group_size.y
 
 #merge these together
 new_data_merge<-rbind(new_data_micro,new_data_meso)
@@ -205,7 +203,6 @@ ggplot(aes(x=perc_annual_dist,y=pred,colour=Functional_group_size,fill=Functiona
   geom_ribbon(alpha=0.25,aes(ymax=ci.ub,ymin=ci.lb),colour=NA)+
   geom_ribbon(alpha=0.25,aes(ymax=pi.ub,ymin=pi.lb),colour=NA)+
   facet_rep_wrap(~Functional_group_size,repeat.tick.labels = TRUE)+
-  geom_line(data=extrapolation_micro,lty=3,aes(x=perc_annual_dist,y=pred,colour=Functional_group_size))+
   geom_point(data=abundance_sub,aes(x=perc_annual_dist,y=lnrr_laj,size=1/v_lnrr_laj),alpha=0.25)+
   xlab("Change in annual precipitation (%)")+
   ylab("Change in soil fauna abundance\n(log response ratio)")+
