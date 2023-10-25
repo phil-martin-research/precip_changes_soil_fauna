@@ -35,7 +35,7 @@ shannnon_inc<- read.csv("data/shannon_inc_data.csv")
 ######################################################
 
 fauna_list<-list(abundance_red,abundance_inc,richness_red,richness_inc,shannnon_red,shannnon_inc)
-outcomes<-c("Abundance","Abundance","Taxonomic\nrichness","Taxonomic\nrichness","Shannon-Wiener index","Shannon-Wiener index")
+outcomes<-c("Abundance","Abundance","Taxonomic richness","Taxonomic richness","Shannon-Wiener index","Shannon-Wiener index")
 disturbances <- rep(c("Precipitation\nreduction", "Precipitation\nincrease"), times = 3)
 sensitivity_summary<-data.frame()
 prediction_summary<-data.frame()
@@ -113,7 +113,7 @@ fauna_data<-rbind(abundance,richness,shannon)
 fauna_data<-fauna_data%>%
   mutate(disturbance=if_else(disturbance_type=="drought","Precipitation\nreduction","Precipitation\nincrease"),
          detailed_outcome=if_else(detailed_outcome=="abundance","Abundance",
-                         if_else(detailed_outcome=="taxonomic richness","Taxonomic\nrichness","Shannon-Wiener index")))%>%
+                         if_else(detailed_outcome=="taxonomic richness","Taxonomic richness","Shannon-Wiener index")))%>%
   filter(lnrr_laj>-3)
 
 #facetted version of the figure
@@ -138,8 +138,10 @@ fauna_data<-fauna_data%>%
   theme(text=element_text(size=12),
         axis.text=element_text(size=10),
         legend.position = "none",
-        legend.justification = "centre")+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        legend.justification = "centre",
+        strip.background =element_rect(fill="white",color = "black", size = 1),
+        strip.text = element_text(face = "bold"),
+        panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_line(colour = "black"))
 
 #create data for the labelling using number of studies and number of comparisons
@@ -165,8 +167,8 @@ facet_summary_plot_with_label1<-facet_summary_plot+
             aes(x=lnrr_laj,
                 y=disturbance,
                 label=studies_annotation),
-                hjust   = 0.3,
-                vjust   = -4)
+                hjust   = 0.5,
+                vjust   = -2.2)
 
 
 facet_summary_plot_with_label2<-facet_summary_plot_with_label1+
@@ -175,8 +177,12 @@ facet_summary_plot_with_label2<-facet_summary_plot_with_label1+
                 y=disturbance,
                 label=change_label),
             hjust   = 0,
-            vjust   = -4)
+            vjust   = -2.2)
 
-tag_facet(facet_summary_plot_with_label2)
+#add labels for figures
+facet_summary_plot_with_label3<-tag_facet(facet_summary_plot_with_label2)+
+  theme(strip.text = element_text(),
+        strip.background = element_rect(fill="white",color = "black", size = 1))
+facet_summary_plot_with_label3
 
-ggsave("figures/for_paper/abun_div_summary_facet.png",width = 13,height = 20,units = "cm",dpi = 300)
+ggsave("figures/for_paper/abun_div_summary_facet.png",facet_summary_plot_with_label3,width = 13,height = 20,units = "cm",dpi = 300)
