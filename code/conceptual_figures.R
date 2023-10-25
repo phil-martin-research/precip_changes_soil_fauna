@@ -3,7 +3,7 @@
 rm(list = ls())
 
 #load packages
-pacman::p_load(tidyverse,lemon,cowplot,patchwork)
+pacman::p_load(tidyverse,lemon,cowplot,patchwork,gghighlight)
 
 
 #1 - differences between precipitation reduction and precipitation increase
@@ -16,7 +16,8 @@ precip_diff<-data.frame(dist_type=c("Precipitation\nreduction","Precipitation\ni
 
 #plot this
 precip_diff_plot<-ggplot(precip_diff,aes(x=es,y=dist_type,colour=dist_type))+
-  geom_pointrange(data=precip_diff,aes(xmin=lci,xmax=uci))+
+  geom_errorbarh(data=precip_diff,aes(xmin=lci,xmax=uci),colour="black",height=0)+
+  geom_point(size=3,shape=19,aes(colour=dist_type))+
   geom_point(size=3,shape=21,colour="black")+
   geom_vline(xintercept = 0,lty=2)+
   theme_cowplot()+
@@ -45,7 +46,9 @@ precip_change_plot<-ggplot(precip_change,aes(precip_change,precip_change))+
         axis.ticks.y=element_blank(),
         legend.position = "none",
         text=element_text(size=8),
-        axis.text = element_text(size=8))
+        axis.text = element_text(size=8))+
+  geom_vline(xintercept=0,lty=2)+
+  geom_hline(yintercept=0,lty=2)
 precip_change_plot
 ggsave("figures/for_paper/conceptual_diagram/precip_change.png",width = 5,height = 4,units = "cm",dpi=300)
 
@@ -58,14 +61,16 @@ precip_microhabitat_change$yi<-ifelse(precip_microhabitat_change$microhabitat=="
                                       precip_microhabitat_change$precip_change*1,
                                       precip_microhabitat_change$precip_change*0.5)
 
-microhabitat_text<-data.frame(precip_change=c(90,90),microhabitat=c("Litter","Soil"),
-                              yi=c(110,65),label=c("Litter","Soil"))
+microhabitat_text<-data.frame(precip_change=c(-40,20,60),microhabitat=c("None","Litter","Soil"),
+                              yi=c(100,100,100),label=c("Fauna habitat:","Litter","Soil"))
 
 microhabitat_plot<-ggplot(precip_microhabitat_change,aes(precip_change,yi,colour=microhabitat))+
   geom_line(alpha=0.5,linewidth=1.5)+
   theme_cowplot()+
   labs(y="Effect size",x="Change in precipitation")+
-  geom_text(data=microhabitat_text,aes(label=label),size=3)+
+  geom_vline(xintercept=0,lty=2)+
+  geom_hline(yintercept=0,lty=2)+
+  geom_label(data=microhabitat_text,aes(label=label,fill=microhabitat),colour="black",size=2,label.size = NA,alpha=0.5)+
   scale_x_continuous(limits = c(-100,105))+
   theme(axis.text.x=element_blank(),
         axis.ticks.x=element_blank(),
@@ -74,7 +79,8 @@ microhabitat_plot<-ggplot(precip_microhabitat_change,aes(precip_change,yi,colour
         legend.position = "none",
         text=element_text(size=8),
         axis.text = element_text(size=8))+
-  scale_color_manual(values=c("#39b15f","#d934a1"))
+  scale_color_manual(values=c("#39b15f","#d934a1"))+
+  scale_fill_manual(values=c("#39b15f","white","#d934a1"))
 microhabitat_plot
 ggsave("figures/for_paper/conceptual_diagram/microhabitat_change.png",width = 5,height = 4,units = "cm",dpi=300)
 
