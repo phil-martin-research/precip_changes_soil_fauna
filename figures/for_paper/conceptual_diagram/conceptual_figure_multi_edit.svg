@@ -68,7 +68,7 @@
        id="image924" />
     <text
        xml:space="preserve"
-       style="font-size:10.6667px;line-height:1.25;font-family:sans-serif;fill:#71e38d;fill-opacity:0.8;stroke:#000000;stroke-opacity:1;stroke-width:0.1;stroke-miterlimit:4;stroke-dasharray:none"
+       style="font-size:10.6667px;line-height:1.25;font-family:sans-serif;fill:#71e38d;fill-opacity:0.8;stroke:#00831a;stroke-width:0.4;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        x="31.987438"
        y="216.09923"
        id="text14256"><tspan
@@ -78,7 +78,7 @@
          y="216.09923">Litter</tspan></text>
     <text
        xml:space="preserve"
-       style="font-size:10.6667px;line-height:1.25;font-family:sans-serif;fill:#9a49ff;fill-opacity:0.8;stroke:#000000;stroke-opacity:1;stroke-width:0.1;stroke-miterlimit:4;stroke-dasharray:none"
+       style="font-size:10.6667px;line-height:1.25;font-family:sans-serif;fill:#9a49ff;fill-opacity:0.8;stroke:#6310df;stroke-width:0.4;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        x="223.4895"
        y="216.51967"
        id="text14256-4"><tspan
@@ -88,7 +88,7 @@
          y="216.51967">Exoskeleton</tspan></text>
     <text
        xml:space="preserve"
-       style="font-size:10.6667px;line-height:1.25;font-family:sans-serif;fill:#ff9900;fill-opacity:0.8;stroke:#000000;stroke-opacity:1;stroke-width:0.1;stroke-miterlimit:4;stroke-dasharray:none"
+       style="font-size:10.6667px;line-height:1.25;font-family:sans-serif;fill:#ff9900;fill-opacity:0.8;stroke:#c66a00;stroke-width:0.4;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        x="222.50406"
        y="231.23065"
        id="text14256-4-3"><tspan
@@ -98,7 +98,7 @@
          y="231.23065">No exoskeleton</tspan></text>
     <text
        xml:space="preserve"
-       style="font-size:10.6667px;line-height:1.25;font-family:sans-serif;fill:#658ea3;fill-opacity:1;stroke:#000000;stroke-opacity:1;stroke-width:0.1;stroke-miterlimit:4;stroke-dasharray:none"
+       style="font-size:10.6667px;line-height:1.25;font-family:sans-serif;fill:#658ea3;fill-opacity:1;stroke:#376174;stroke-width:0.4;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        x="408.33325"
        y="215.75876"
        id="text14256-4-1"><tspan
@@ -108,7 +108,7 @@
          y="215.75876">Microfauna</tspan></text>
     <text
        xml:space="preserve"
-       style="font-size:10.6667px;line-height:1.25;font-family:sans-serif;fill:#e599ae;fill-opacity:1;stroke:#000000;stroke-opacity:1;stroke-width:0.1;stroke-miterlimit:4;stroke-dasharray:none"
+       style="font-size:10.6667px;line-height:1.25;font-family:sans-serif;fill:#e599ae;fill-opacity:1;stroke:#b26a7f;stroke-width:0.4;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        x="407.34781"
        y="230.46974"
        id="text14256-4-3-1"><tspan
@@ -118,7 +118,7 @@
          y="230.46974">Mesofauna</tspan></text>
     <text
        xml:space="preserve"
-       style="font-size:10.6667px;line-height:1.25;font-family:sans-serif;fill:#ffeb6f;fill-opacity:1;stroke:#000000;stroke-opacity:1;stroke-width:0.1;stroke-miterlimit:4;stroke-dasharray:none"
+       style="font-size:10.6667px;line-height:1.25;font-family:sans-serif;fill:#ffeb6f;fill-opacity:1;stroke:#f5dd6f;stroke-width:0.4;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        x="408.36234"
        y="244.92708"
        id="text14256-4-3-1-2"><tspan
@@ -128,7 +128,7 @@
          sodipodi:role="line">Macrofauna</tspan></text>
     <text
        xml:space="preserve"
-       style="font-size:10.6667px;line-height:1.25;font-family:sans-serif;fill:#da35a1;fill-opacity:0.8;stroke:#000000;stroke-opacity:1;stroke-width:0.1;stroke-miterlimit:4;stroke-dasharray:none"
+       style="font-size:10.6667px;line-height:1.25;font-family:sans-serif;fill:#da35a1;fill-opacity:0.8;stroke:#83004c;stroke-width:0.4;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        x="33.261311"
        y="230.21609"
        id="text14256-3"><tspan
