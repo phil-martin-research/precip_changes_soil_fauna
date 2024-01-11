@@ -73,7 +73,7 @@ new_data<-data.frame(disturbance_type2=unique(site_data_unique$disturbance_type2
 #predict response
 bias_preds<-bolker_ci(bias_model,new_data,pred_int = TRUE,conf_level = 0.95)
 bias_preds$perc_pred<-(exp(bias_preds$pred)-1)*100
-bias_preds$perc_pred_label<-paste(round(bias_preds$perc_pred),"%",sep="")
+bias_preds$perc_pred_label<-paste(round(bias_preds$perc_pred),c("%*","%"),sep="")
 
 #error plot of this
 precip_bias_plot<-ggplot(bias_preds,aes(pred,disturbance_type2,colour=disturbance_type2))+

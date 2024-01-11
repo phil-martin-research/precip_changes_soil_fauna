@@ -171,3 +171,57 @@ cowplot_combined<-plot_grid(cowplot_row_1,cowplot_row_2,ncol=1)
 cowplot_combined
 save_plot("figures/for_paper/conceptual_diagram/conceptual_figure_multi.png",cowplot_combined,base_height = 10,base_width = 15,units="cm")  
 
+
+#2 - conceptual figure for discussion
+
+body_size<-data.frame(body_size=seq(0,100))
+
+#add data on refuge ability
+body_size$refuge<-1-body_size$body_size
+
+#add data on physical resistance
+body_size$resistance<-(body_size$body_size-50)^2
+
+#add data on population change
+body_size$pop_change<-(((body_size$body_size-50)^2)-2500)/2500
+
+#plot graphs for drought
+
+#refuge
+refuge_plot<-ggplot(body_size,aes(body_size,refuge))+
+  geom_line()+
+  theme_cowplot()+
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank())+
+  labs(x="",y="Refuge ability")
+
+#physical resistance
+resistance_plot<-ggplot(body_size,aes(body_size,resistance))+
+  geom_line()+
+  theme_cowplot()+
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank())+
+  labs(x="",y="Physical resistance to drought")
+
+#population change
+population_plot_drought<-ggplot(body_size,aes(body_size,pop_change))+
+  geom_line()+
+  theme_cowplot()+
+  geom_hline(yintercept = 0,lty=2)+
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank())+
+  labs(x="",y="Population change")+
+  expand_limits(y=1)
+
+
+#do the same but using cowplot
+drought_row_1<-plot_grid(refuge_plot,resistance_plot,population_plot_drought,ncol=3,
+                         labels=c("(a)","(b)","(c)"),label_size = 12)
+
+ggsave("figures/for_paper/conceptual_diagram/drought_hypotheses.png",width = 12,height = 4,dpi = 300)

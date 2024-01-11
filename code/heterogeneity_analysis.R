@@ -520,10 +520,10 @@ richness_sample_size<-richness_complete%>%
 
 #plot the results of the predictions
 richness_figure<-ggplot(new_data_rich,aes(perc_annual_dist,y=pred))+
-  geom_line(colour="#2596be")+
-  geom_ribbon(alpha=0.25,aes(ymax=ci.ub,ymin=ci.lb),colour=NA,fill="#2596be")+
-  geom_ribbon(alpha=0.25,aes(ymax=pi.ub,ymin=pi.lb),colour=NA,fill="#2596be")+
-  geom_point(data=richness_complete,aes(x=perc_annual_dist,y=lnrr_laj,size=1/v_lnrr_laj),colour="#2596be",alpha=0.2)+
+  geom_line(colour="black")+
+  geom_ribbon(alpha=0.25,aes(ymax=ci.ub,ymin=ci.lb),colour=NA,fill="darkgrey")+
+  geom_ribbon(alpha=0.25,aes(ymax=pi.ub,ymin=pi.lb),colour=NA,fill="darkgrey")+
+  geom_point(data=richness_complete,aes(x=perc_annual_dist,y=lnrr_laj,size=1/v_lnrr_laj),colour="black",alpha=0.6,shape=1)+
   theme_cowplot()+
   labs(x="Change in annual precipitation (%)",
        y="Change in soil fauna taxonomic\nrichness(log response ratio)")+
@@ -532,7 +532,6 @@ richness_figure<-ggplot(new_data_rich,aes(perc_annual_dist,y=pred))+
   theme(legend.position = "none")+
   geom_hline(yintercept = 0,lty=2,alpha=0.3)+
   geom_vline(xintercept = 0,lty=2,alpha=0.3)+
-  ylim(-2,1)+
   geom_text(data=richness_sample_size,aes(x=30,y=1,label=k_label),colour="black")+
   theme(axis.text = element_text(size=12),
         axis.title = element_text(size=12))

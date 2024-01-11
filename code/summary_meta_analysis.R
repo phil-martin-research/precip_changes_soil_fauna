@@ -123,9 +123,9 @@ fauna_data<-fauna_data%>%
                    aes(x=lnrr_laj,y=disturbance,colour=disturbance,group=detailed_outcome,size=1/v_lnrr_laj),
                    dodge.width = 0.01,alpha=0.5)+
   geom_errorbarh(data=prediction_summary_perc,aes(y=disturbance,xmin=pi.lb,xmax=pi.ub),
-                 position=position_dodge(width=1),size=1,height=0,colour="black",alpha=0.8)+
+                 position=position_dodge(width=1),linewidth=1,height=0,colour="black",alpha=0.8)+
   geom_errorbarh(data=prediction_summary_perc,aes(xmin=ci.lb,xmax=ci.ub,y=disturbance),
-                 position=position_dodge(width=1),size=2,height=0,colour="black",alpha=0.8)+
+                 position=position_dodge(width=1),linewidth=2,height=0,colour="black",alpha=0.8)+
   geom_point(data=prediction_summary_perc,aes(x=pred,y=disturbance,colour=disturbance,fill=disturbance),
              position=position_dodge(width=1),size=4,shape=21,colour="black")+
   theme_cowplot()+
@@ -139,8 +139,8 @@ fauna_data<-fauna_data%>%
         axis.text=element_text(size=10),
         legend.position = "none",
         legend.justification = "centre",
-        strip.background =element_rect(fill="white",color = "black", size = 1),
-        strip.text = element_text(face = "bold"),
+        strip.background =element_rect(fill="white",color = "black", linewidth = 1),
+        strip.text = element_text(face = "bold",margin = unit(rep(2, 4), "pt")),
         panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_line(colour = "black"))
 
@@ -181,7 +181,7 @@ facet_summary_plot_with_label2<-facet_summary_plot_with_label1+
 
 #add labels for figures
 facet_summary_plot_with_label3<-tag_facet(facet_summary_plot_with_label2)+
-  theme(strip.text = element_text(),
+  theme(strip.text = element_text(face = "bold",margin = unit(rep(2, 4), "pt")),
         strip.background = element_rect(fill="white",color = "black", size = 1))
 facet_summary_plot_with_label3
 

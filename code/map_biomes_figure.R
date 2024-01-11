@@ -27,7 +27,6 @@ spatial_data_unique<-spatial_data%>%mutate(precip_dec=if_else(disturbance_type==
                                            group_by(lat,lon,dist_types)%>%
                                            summarise(total_comp=dec_count+inc_count)
 
-                                           
 #different size for different numbers of comparisons
 #group sites into unique sites
 
