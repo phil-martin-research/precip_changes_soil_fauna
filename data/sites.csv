@@ -2,7 +2,7 @@ Study_ID,site_no,Site_ID,Country,Detailed_location,Latitude_deg,Latitude_min,Lat
 Ashton_2019a,1,Ashton_2019a_1,Malaysia,Danum Valley Conservation Area,4,44,45,116,58,20,NA,NA,tropical rainforest,deciduous,observational,TRUE,FALSE,FALSE,FALSE,FALSE,200
 Aslam_2015a,1,Aslam_2015a_1,Australia ,"University of Western Sydney, Australia ",-33,-36,-39,150,44,32,NA,NA,,deciduous,experimental,FALSE,TRUE,TRUE,FALSE,TRUE,1600
 Aupic_Samain_2021a,1,Aupic_Samain_2021a_1,France,"Observatoire de Haute Provence, Luberon Natural Regional Park",43,56,115,5,42,42,NA,NA,temperate seasonal forest,deciduous,experimental,FALSE,TRUE,FALSE,FALSE,FALSE,300
-Aupic_Samain_2021a,2,Aupic_Samain_2021a_2,France,"Puechabon State Forest, Occitanie, SE France",4,44,45,116,58,20,NA,NA,temperate seasonal forest,mixed,experimental,FALSE,TRUE,FALSE,FALSE,FALSE,300
+Aupic_Samain_2021a,2,Aupic_Samain_2021a_2,France,"Puechabon State Forest, Occitanie, SE France",43,44,45,116,58,20,NA,NA,temperate seasonal forest,mixed,experimental,FALSE,TRUE,FALSE,FALSE,FALSE,300
 Aupic_Samain_2021a,3,Aupic_Samain_2021a_3,France,"Font-Blanche, Provence , SE France",56,33,0,13,13,0,NA,NA,temperate seasonal forest,mixed,experimental,FALSE,TRUE,FALSE,FALSE,FALSE,300
 Bakonyi_2007a,1,Bakonyi_2007a_1,Hungary,"Danube-Tisza Interfluve, Southern Great Plain, Hungary",46,53,0,19,23,0,NA,NA,temperate seasonal forest,mixed,experimental,FALSE,TRUE,FALSE,,FALSE,20
 Chikoski_2006a,1,Chikoski_2006a_1,Canada,"south-central Saskatchewan, Canada ",52,10,0,106,41,0,NA,NA,temperate seasonal forest,deciduous,experimental,FALSE,TRUE,FALSE,FALSE,TRUE,997.5
@@ -41,3 +41,8 @@ Taylor_2005a,1,Taylor_2005a_1,Germany,"Vogelsberg area of Hessia, Germany",50,31
 Delph_2014a,1,Delph_2014a_1,USA,"six sites Middle Rio Grande Basin, New Mexico",NA,NA,NA,NA,NA,NA,35.31,-106.395,temperate seasonal forest,deciduous,observational,FALSE,TRUE,FALSE,TRUE,FALSE,100
 Levings_1984a,1,Levings_1984a_1,Panama,Barro Colorado Island,NA,NA,NA,NA,NA,NA,9.156279669,-79.84725689,tropical rainforest,deciduous,experimental,FALSE,TRUE,FALSE,FALSE,TRUE,0.25
 Guidi_2022,1,Guidi_2022_1,Switzerland,"Pfynwald, Valais",46,18,0,7,37,0,NA,NA,temperate seasonal forest,coniferous,experimental,FALSE,TRUE,FALSE,FALSE,TRUE,10000
+Homet_2023,1,Homet_2023_1,Spain,Los Alcornocales Natural Park,NA,NA,NA,NA,NA,NA,36.568749,-5.53564,temperate seasonal forest,deciduous,experimental,FALSE,TRUE,TRUE,FALSE,FALSE,300
+Homet_2023,2,Homet_2023_2,France,"Puechabon National Forest, southern France",NA,NA,NA,NA,NA,NA,43.74166656,3.595634957,temperate seasonal forest,deciduous,experimental,FALSE,TRUE,TRUE,FALSE,FALSE,140
+Šustek_2017,1,Šustek_2017_1,Slovakia,"Vyšné Hágy, high tatra mountains",49,7,17.5,20,15,7.9,NA,NA,temperate seasonal forest,coniferous,observational,TRUE,FALSE,FALSE,FALSE,FALSE,NA
+Xing_2023,1,Xing_2023_1,China,"Changbai Mountain experimental station, northeast China",42,24,0,128,6,0,NA,NA,temperate seasonal forest,coniferous,experimental,FALSE,TRUE,TRUE,FALSE,FALSE,2500
+Zhou_2023,1,Zhou_2023_1,China,"Ya'an city, Sichuan, southwestern China",30,3,0,102,59,0,NA,NA,tropical rainforest,deciduous,experimental,FALSE,TRUE,FALSE,FALSE,TRUE,25
