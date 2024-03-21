@@ -8,9 +8,9 @@
 pacman::p_load(tidyverse,metafor,tidyr,here,patchwork,dplyr,raster,ggthemes,lemon)
 
 #read in .csv file with soil fauna data
-crit_appraisal<- read_csv("data/critical_appraisal_2023_05_29.csv")
-sites<- read_csv("data/site_data_2023_06_07.csv")
-fact_table<- read_csv("data/fact_table_2023_08_06.csv")
+crit_appraisal<- read_csv("data/critical_appraisal.csv")
+sites<- read_csv("data/sites.csv")
+fact_table<- read_csv("data/outcomes.csv")
 taxonomy<- read_csv("data/taxonomy.csv")
 body_length<- read_csv("data/body_length.csv")
 body_width<- read_csv("data/body_width.csv")
@@ -57,13 +57,13 @@ fact_table <- fact_table %>%
                         Highest_taxonomic_resolution=="Qudsianematidae",
                         "no","yes"),
     trap=if_else(sampling_method=="pitfall traps","Trap","Other"))
-#we have 661 rows here
+#we have 751 rows here
 
 #remove columns that we don't use 
 col_details<-data.frame(col_name=names(fact_table),
-                        col_index=seq(1,146))
+                        col_index=seq(1,88))
 
-fact_table<-dplyr::select(fact_table,-c(18,19,22,23,33,35:87,89:108,115:122,128:136,138:139))
+fact_table<-dplyr::select(fact_table,-c(18,19,22,23,33,36:45,47:68,70:78,80:81))
 
 #check to see if any of the means are equal to zero
 #control group
@@ -75,8 +75,8 @@ fact_table%>%
   group_by(disturbance_av)%>%
   summarise(length(disturbance_av))
 
-#there are only 19 data points where control or disturbance mean are equal to 0
-#so we will exclude these - leaving us with 646 rows
+#there are only 29 data points where control or disturbance mean are equal to 0
+#so we will exclude these - leaving us with 725 rows
 fact_table<-fact_table%>%
   filter(control_av>0&disturbance_av>0)
 
@@ -115,7 +115,7 @@ fact_table <- fact_table %>%
          geary_test = ifelse(geary_control >= 3 & geary_trt >= 3, "pass", "fail"))
 # How many fail?
 geary_res <- fact_table %>% group_by(geary_test) %>% summarise(n = n()) %>%  data.frame()
-#24 effect sizes fail representing around 5% of the data
+#104 effect sizes fail representing around 15% of the data
 
 
 # Calculate the average between study CV, which will replace missing values.
@@ -160,7 +160,7 @@ ggplot(soil_fauna_rr,aes(rr_diff))+
   facet_wrap(~geary_test)
 
 #the similarity of the two effect sizes is very high
-#it looks like they come from the comparisons that fail the geary test, we will test the impact of including these later
+#it looks like the differences come from the comparisons that fail the geary test, we will test the impact of including these later
 
 
 #add variable for the standard error of each effect size for publication bias analysis
@@ -190,9 +190,9 @@ soil_fauna_rr$aridity<-soil_fauna_rr$aridity/10000
 
 #remove columns that are not needed
 col_details<-data.frame(col_name=names(soil_fauna_rr),
-                        col_index=seq(1,69))
+                        col_index=seq(1,60))
 
-soil_fauna_rr<-dplyr::select(soil_fauna_rr,-c(9:13,23:27,43:44,51:54,56:59))
+soil_fauna_rr<-dplyr::select(soil_fauna_rr,-c(9:13,23:27,47:50))
 
 #check to see which outcomes are most commonly reported
 soil_fauna_rr%>%
@@ -237,7 +237,7 @@ write.csv(fauna_shannon_inc, "data/shannon_inc_data.csv")
 
 #we want data with study details, locations, taxonomic groups/size classes, and disturbance types
 soil_fauna_spatial_data<-soil_fauna_rr%>%filter(use_for_first_analysis==TRUE)%>%#keep only data we use for analyses
-                          select(Study_ID,Site_ID,disturbance_type,Functional_group_size.y,perc_annual_dist,Country,lat,lon) #select only columns we want
+                          dplyr::select(Study_ID,Site_ID,disturbance_type,Functional_group_size.y,perc_annual_dist,Country,lat,lon) #select only columns we want
                           
 #save this as a .csv
 write.csv(soil_fauna_spatial_data,"data/fauna_spatial_data.csv")

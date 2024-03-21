@@ -53,6 +53,7 @@ shannon_complete<-shannon[complete.cases(shannon$perc_annual_dist,
 #allow model evalution with MuMIn package
 eval(metafor:::.MuMIn)
 
+#incorporate data about location aridity
 abundance_complete$arid_class<-ifelse(abundance_complete$aridity>0.65,"Humid","Dry")
 
 ###############################################################################
@@ -414,7 +415,6 @@ sample_size_label<-mesofauna_abundance%>%
 
 #save plot
 ggsave("figures/for_paper/collembola_acari.png",width = 20,height = 10,units = "cm",dpi = 300)
-ggsave("figures/for_paper/collembola_acari.pdf",width = 20,height = 10,units = "cm",dpi = 300)
 
 
 
@@ -425,7 +425,7 @@ ggsave("figures/for_paper/collembola_acari.pdf",width = 20,height = 10,units = "
 #2.1 - taxonomic diversity
 
 #to test models I don't want to build models with more that 4 parameters due 
-#to the small dataset (k=43) and the associated risk of overparameterisation
+#to the small dataset (k=47) and the associated risk of overparameterisation
 
 #test all models against each other
 rich_M0<-rma.mv(lnrr_laj,v_lnrr_laj,random=~1|Study_ID/Site_ID/obsID,data=richness_complete,)
@@ -451,7 +451,7 @@ rich_M19<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*exoskeleton+year.c
 
 #create a model selection table of these models
 rich_model_sel<-model.sel(rich_M1,rich_M2,rich_M3,rich_M4,rich_M5,rich_M6,rich_M7,rich_M8,rich_M9,rich_M10,rich_M11,rich_M12,
-                          rich_M13,rich_M14,rich_M15,rich_M16,rich_M17,rich_M18,rich_M19)
+                          rich_M13,rich_M14,rich_M15,rich_M16,rich_M18,rich_M19)
 
 #M4 is the best model  - it just includes change in precipitation
 #as well as correction for year effect and small study effect
@@ -543,7 +543,7 @@ ggsave("figures/for_paper/richness_precip.png",width = 12,height = 8,units = "cm
 #2.2 - shannon diversity
 
 #to test models I don't want to build models with more that 4 parameters due 
-#to the small dataset (k=38) and the associated risk of overparameterisation
+#to the small dataset (k=43) and the associated risk of overparameterisation
 
 #test all models against each other
 shannon_M0<-rma.mv(lnrr_laj,v_lnrr_laj,random=~1|Study_ID/Site_ID/obsID,data=shannon_complete)
@@ -619,17 +619,16 @@ shannon_coef_full_table%>%gtsave("figures/for_paper/shannon_coef_table.docx")
 #plot figure showing these results
 
 #save model formula
-M5_formula<-(~perc_annual_dist+year.c)
+M1_formula<-(~year.c)
 
 #create new dataset for predictions for year
-new_data_shannon_year<-data.frame(perc_annual_dist=mean(shannon_complete$perc_annual_dist),
-                             year.c=seq(min(shannon_complete$year.c),max(shannon_complete$year.c),0.1))
+new_data_shannon_year<-data.frame(year.c=seq(min(shannon_complete$year.c),max(shannon_complete$year.c),0.1))
 
 #create a model matrix and remove the intercept
-predgrid_shannon_year<-model.matrix(M5_formula,data=new_data_shannon_year)[,-1]
+predgrid_shannon_year<-model.matrix(M1_formula,data=new_data_shannon_year)[,-1]
 
 #predict onto the new model matrix
-mypreds_shannon_year<-data.frame(predict.rma(shannon_M5,newmods=predgrid_shannon_year))
+mypreds_shannon_year<-data.frame(predict.rma(shannon_M1,newmods=predgrid_shannon_year))
 
 #attach predictions to variables for plotting
 new_data_shannon_year <- cbind(new_data_shannon_year, mypreds_shannon_year[c("pred", "ci.lb", "ci.ub", "pi.lb", "pi.ub")])
@@ -651,45 +650,6 @@ shannon_year_figure<-ggplot(new_data_shannon_year,aes(study_year,y=pred))+
   geom_hline(yintercept = 0,lty=2,alpha=0.3)
 shannon_year_figure
 
-#and now a figure for precipitation impact
-#create new dataset for predictions for year
-new_data_shannon_precip<-data.frame(perc_annual_dist=seq(min(shannon_complete$perc_annual_dist),max(shannon_complete$perc_annual_dist),1),
-                                  year.c=mean(shannon_complete$year.c))
+save_plot("figures/for_paper/shannon_year_figure.png",shannon_year_figure,base_height = 10,base_width = 15,units="cm",dpi=300)
 
-#create a model matrix and remove the intercept
-predgrid_shannon_precip<-model.matrix(M5_formula,data=new_data_shannon_precip)[,-1]
-
-#predict onto the new model matrix
-mypreds_shannon_precip<-data.frame(predict.rma(shannon_M5,newmods=predgrid_shannon_precip))
-
-#attach predictions to variables for plotting
-new_data_shannon_precip<-cbind(new_data_shannon_precip, mypreds_shannon_precip[c("pred", "ci.lb", "ci.ub", "pi.lb", "pi.ub")])
-
-#plot the results of the predictions
-shannon_precip_figure<-ggplot(new_data_shannon_precip,aes(perc_annual_dist,y=pred))+
-  geom_line(colour="#fcba03")+
-  geom_ribbon(alpha=0.25,aes(ymax=ci.ub,ymin=ci.lb),colour=NA,fill="#fcba03")+
-  geom_ribbon(alpha=0.25,aes(ymax=pi.ub,ymin=pi.lb),colour=NA,fill="#fcba03")+
-  geom_point(data=shannon_complete,aes(x=perc_annual_dist,y=lnrr_laj,size=1/v_lnrr_laj),colour="#fcba03",alpha=0.2)+
-  theme_cowplot()+
-  labs(x="Change in precipitation (%)",
-       y="Change in soil fauna Shannon\ndiversity(log response ratio)")+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-        panel.background = element_blank(), axis.line = element_line(colour = "black"))+
-  theme(legend.position = "none")+
-  geom_hline(yintercept = 0,lty=2,alpha=0.3)
-shannon_precip_figure
-
-#stick these figures together
-shannon_combined<-plot_grid(shannon_year_figure,shannon_precip_figure,labels = c("(a)","(b)"))
-
-save_plot("figures/for_paper/shannon_change_combined.png",shannon_combined,base_height = 10,base_width = 18,units="cm",dpi=300)
-
-
-
-########################
-#data exploration here##
-########################
-
-abundance$arid_class<-ifelse(abundance$aridity>0.65,"Humid","Dry")
 

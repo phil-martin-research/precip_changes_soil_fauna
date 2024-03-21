@@ -181,7 +181,7 @@ facet_summary_plot_with_label2<-facet_summary_plot_with_label1+
 
 #add labels for figures
 facet_summary_plot_with_label3<-tag_facet(facet_summary_plot_with_label2)+
-  theme(strip.text = element_text(face = "bold",margin = unit(rep(2, 4), "pt")),
+  theme(strip.text = element_text(face = "bold",margin = unit(rep(4, 4), "pt")),
         strip.background = element_rect(fill="white",color = "black", size = 1))
 facet_summary_plot_with_label3
 
