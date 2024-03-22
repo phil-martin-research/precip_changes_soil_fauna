@@ -1,87 +1,87 @@
-Highest_taxonomic_resolution,phylum,Taxa_Class,Taxa_subclass,superorder,Taxa_order,sub_order,infraorder,Taxa_Family,Taxa_genus,Functional_group_size,body_length,body_width
-Acari,Arthropoda,Arachnida,NA,Acariformes,NA,NA,NA,NA,NA,mesofauna,Acari,Acari
-Acrobeles,Nematoda,Chromadorea,NA,NA,Rhabditida ,NA,NA,Cephalobidae,Acrobeles,microfauna,Nematoda,Nematoda
-Acrobeloides,Nematoda,Chromadorea,NA,NA,Rhabditida ,NA,NA,Cephalobidae,Acrobeloides,microfauna,Nematoda,Nematoda
-Amphipoda,Arthropoda,Malacostraca,NA,NA,Amphipoda,NA,NA,NA,NA,mesofauna,Amphipoda,Amphipoda
-Aphelenchoides,Nematoda,Chromadorea,NA,NA,NA,NA,NA,Aphelenchoididae ,Aphelenchoides,microfauna,Nematoda,Nematoda
-Aphelenchoididae,Nematoda,Secernentea,NA,NA,Tylenchida,NA,NA,Aphelenchoididae,NA,microfauna,Nematoda,Nematoda
-Aphelenchus,Nematoda,Chromadorea,NA,NA,NA,NA,NA,Aphelenchidae,Aphelenchus,microfauna,Nematoda,Nematoda
-Aporcelaimellus,Nematoda,Enoplea ,NA,NA,Dorylaimida ,NA,NA,Aporcelaimidae,Aporcelaimellus,microfauna,Nematoda,Nematoda
-Araneida,Arthropoda,Arachnida,NA,NA,Araneae,NA,NA,NA,NA,macrofauna,Araneae,Araneida
-Arthropods,Arthropoda,NA,NA,NA,NA,NA,NA,NA,NA,NA,Arthropods,Arthropods
-Carabidae,Arthropoda,Insecta,NA,NA,Coleoptera,Adephaga,NA,Carabidae,NA,macrofauna,Coleoptera,Coleoptera
-Cephalobidae,Nematoda,Chromadorea,NA,NA,Rhabditida,NA,NA,Cephalobidae,NA,microfauna,Nematoda,Nematoda
-Cephalobus,Nematoda,Chromadorea,NA,NA,Rhabditida ,NA,NA,NA,Cephalobus,microfauna,Nematoda,Nematoda
-Cervidellus,Nematoda,Chromadorea,NA,NA,Rhabditida ,NA,NA,Cephalobidae,Cervidellus,microfauna,Nematoda,Nematoda
-Chilopoda,Arthropoda,Chilopoda,NA,NA,NA,NA,NA,NA,NA,macrofauna,Chilopoda,Chilopoda
-Chrysomelidae,Arthropoda,NA,NA,NA,NA,NA,NA,Chrysomelidae,NA,macrofauna,Chrysomelidae,Chrysomelidae
-Coleoptera,Arthropoda,Insecta,NA,NA,Coleoptera,NA,NA,NA,NA,macrofauna,Coleoptera,Coleoptera
-Collembola,Arthropoda,Entognatha,Collembola,NA,NA,NA,NA,NA,NA,mesofauna,Collembola,Collembola
-Criconematidae,Nematoda,Secernentea,NA,NA,Tylenchida,NA,NA,Criconematidae,NA,microfauna,Nematoda,Nematoda
-Curculionidae,Arthropoda,NA,NA,NA,NA,NA,NA,Curculionidae,NA,macrofauna,Curculionidae,Curculionidae
-Diplopoda,Arthropoda,Diplopoda,NA,NA,NA,NA,NA,NA,NA,macrofauna,Diplopoda,Diplopoda
-Diplura,Arthropoda,Entognatha,Diplura,NA,NA,NA,NA,NA,NA,mesofauna,Diplura,Diplura
-Diptera,Arthropoda,Insecta,NA,NA,Diptera,NA,NA,NA,NA,macrofauna,Diptera,Diptera
-Discolaimium,Nematoda,Enoplea,NA,NA,Dorylaimida ,NA,NA,Discolaimidae,Discolaimium,microfauna,Nematoda,Nematoda
-Ditylenchus,Nematoda,Secernentea,NA,NA,NA,NA,NA,Anguinidae,Ditylenchus,microfauna,Nematoda,Nematoda
-Enchytraeidae,Annelidae,Clitellata,NA,NA,Haplotaxida,NA,NA,Enchytraeidae,NA,mesofauna,Enchytraeidae,Enchytraeidae
-Entomobryidae,Arthropoda,Entognatha,Collembola,NA,NA,NA,NA,Entomobryidae,NA,mesofauna,Collembola,Collembola
-Entomobryomorpha,Arthropoda,Entognatha,Collembola,NA,Entomobryomorpha,NA,NA,NA,NA,mesofauna,Collembola,Collembola
-Eudorylaimus,Nematoda,Enoplea,NA,NA,Dorylaimida ,NA,NA,Dorylaimidae,Eudorylaimus,microfauna,Nematoda,Nematoda
-Gastropoda,Mollusca,Gastropoda,NA,NA,NA,NA,NA,NA,NA,macrofauna,Gastropoda,Gastropoda
-Gnaphosidae,Arthropoda,Arachnida,NA,NA,Araneae,NA,NA,Gnaphosidae,NA,macrofauna,Araneae,Araneida
-Hemiptera,Arthropoda,Insecta,NA,NA,Hemiptera,NA,NA,NA,NA,macrofauna,Hemiptera,Hemiptera
-Heterocephalobus,Nematoda,Chromadorea,NA,NA,Rhabditida ,NA,NA,Cephalobidae,Heterocephalobus,microfauna,Nematoda,Nematoda
-Hypogastruridae,Arthropoda,Entognatha,Collembola,NA,Poduromorpha,NA,NA,Hypogastruridae,NA,mesofauna,Collembola,Collembola
-Isopoda,Arthropoda,Malacostraca,NA,NA,Isopoda,NA,NA,NA,NA,macrofauna,Isopoda,Ispoda
-Isoptera,Arthropoda,Insecta,NA,NA,Blattodea,NA,Isoptera,NA,NA,mesofauna,Blattodea,Isoptera
-Isotomidae,Arthropoda,Entognatha,Collembola,NA,Entomobryomorpha,NA,NA,Isotomidae,NA,mesofauna,Collembola,Collembola
-Leptonchus,Nematoda,Enoplea,NA,NA,Dorylaimida ,NA,NA,NA,Leptonchus,microfauna,Nematoda,Nematoda
-Lumbricidae,Annelidae,Clitellata,NA,NA,Opisthopora,NA,NA,Lumbricidae,NA,macrofauna,Lumbricina,Lumbricidae
-Lycosidae,Arthropoda,Arachnida,NA,NA,Araneae,NA,NA,Lycosidae,NA,macrofauna,Araneae,Araneida
-Macroarthropods,Arthropoda,NA,NA,NA,NA,NA,NA,NA,NA,macrofauna,Macroarthropods ,Macroarthropods 
-Megadrilacea,Annelidae,NA,NA,NA,NA,NA,NA,NA,NA,macrofauna,Megadrilacea,Megadrili
-Mesofauna,Arthropoda,NA,NA,NA,NA,NA,NA,NA,NA,mesofauna,,
-Mesostigmata,Arthropoda,Arachnida,NA,Parasitiformes,Mesostigmata,NA,NA,NA,NA,mesofauna,Mesostigmata,Mesostigmata
-Microarthropods,Arthropoda,NA,NA,NA,NA,NA,NA,NA,NA,mesofauna,Microarthropods,Microarthropods
-Microdorylaimus,Nematoda,Enoplea,NA,NA,Dorylaimida ,NA,NA,NA,Microdorylaimus,microfauna,Nematoda,Nematoda
-Microlaimus,Nematoda,Chromadorea,NA,NA,Desmodorida,NA,NA,NA,Microlaimus,microfauna,Nematoda,Nematoda
-Mollusca,Mollusca,NA,NA,NA,NA,NA,NA,NA,NA,megafauna,,Mollusca
-Monhystendae,Nematoda,Chromadorea,NA,NA,Monhysterida,NA,NA,Monhysteridae,Monhystendae,microfauna,Nematoda,Nematoda
-Neelipleona,Arthropoda,Entognatha,Collembola,NA,Neelipleona,NA,NA,Neelidae,NA,mesofauna,Collembola,Collembola
-Nematoda,Nematoda,NA,NA,NA,NA,NA,NA,NA,NA,microfauna,Nematoda,Nematoda
-Nitulidae,Arthropoda,NA,NA,NA,NA,NA,NA,Nitulidae,NA,macrofauna,Nitulidae,Nitulidae
-Oniscidea,Arthropoda,Malacostraca,NA,Peracarida,Isopoda,Oniscidea,NA,NA,NA,macrofauna,Isopoda,Ispoda
-Opiliones,Arthropoda,Arachnida,NA,NA,Opiliones,NA,NA,NA,NA,macrofauna,Opiliones,Opiliones
-Oribatida,Arthropoda,Arachnida,Acari,Acariformes,Oribatida,NA,NA,NA,NA,mesofauna,Oribatida,Acari
-Plectidae,Nematoda,Chromadorea,NA,NA,Araeolaimida,NA,NA,Plectidae,NA,microfauna,Nematoda,Nematoda
-Plectus,Nematoda,Plectidae,NA,NA,NA,NA,NA,NA,Plectus,microfauna,Nematoda,Nematoda
-Poduromorpha,Arthropoda,Entognatha,Collembola,NA,Poduromorpha,NA,NA,NA,NA,mesofauna,Collembola,Collembola
-Prismatolaimus,Nematoda,Enoplea,NA,NA,Enoplida,NA,NA,Prismatolaimidae,Prismatolaimus,microfauna,Nematoda,Nematoda
-Prostigmata,Arthropoda,Arachnida,NA,NA,Trombidiformes,NA,Prostigmata,NA,NA,mesofauna,Prostigmata,Prostigmata
-Protista,NA,NA,NA,NA,NA,NA,NA,NA,NA,microfauna,Protists,
-Protozoa,NA,NA,NA,NA,NA,NA,NA,NA,NA,microfauna,Protists,Protozoa
-Protura,Arthropoda,Entognatha,Protura,NA,NA,NA,NA,NA,NA,mesofauna,Protura,Protura
-Pseudoscorpiones,Arthropoda,Arachnida,NA,NA,Pseudoscorpiones,NA,NA,NA,NA,mesofauna,Pseudoscorpiones,
-Psocoptera,Arthropoda,Insecta,NA,NA,Psocoptera,NA,NA,NA,NA,macrofauna,Psocoptera,Psocoptera
-Pungentus,Nematoda,Enoplea,NA,NA,Dorylaimida,NA,NA,Nordiidae,Pungentus,microfauna,Nematoda,Nematoda
-Qudsianematidae,Nematoda,Enoplea,NA,NA,Dorylaimida,NA,NA,Qudsianematidae,NA,microfauna,Nematoda,Nematoda
-Rotifera,Rotifera,NA,NA,NA,NA,NA,NA,NA,NA,microfauna,Rotifera,Rotifera
-Scarabaeidae,Arthropoda,NA,NA,NA,NA,NA,NA,Scarabaeidae,NA,macrofauna,Scarabaeidae,Scarabaeidae
-Scolytidae,Arthropoda,NA,NA,NA,NA,NA,NA,Scolytidae,NA,macrofauna,Scolytidae,Scolytidae
-Seinura,Nematoda,Enoplea,NA,NA,Dorylaimida,NA,NA,Qudsianematidae,Seinura,microfauna,Nematoda,Nematoda
-Sminthuridae,Arthropoda,Entognatha,Collembola,NA,Symphypleona,NA,NA,Sminthuridae,NA,mesofauna,Collembola,Collembola
-Soil fauna,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
-Staphylinidae,Arthropoda,NA,NA,NA,NA,NA,NA,Staphylinidae,NA,macrofauna,Staphylinidae,Staphylinidae
-Symphyla,Arthropoda,Symphyla,NA,NA,NA,NA,NA,NA,NA,mesofauna,Symphyla,Symphyla
-Symphypleona,Arthropoda,Entognatha,Collembola,NA,Symphypleona,NA,NA,NA,NA,mesofauna,Collembola,Collembola
-Tardigrada ,Tardigrada,NA,NA,NA,NA,NA,NA,NA,NA,microfauna,Tardigrada,Tardigrada 
-Testate amoebae,NA,NA,NA,NA,NA,NA,NA,NA,NA,microfauna,Testate amoebae,
-Theridiidae,Arthropoda,Arachnida,NA,NA,Araneae,NA,NA,Theridiidae,NA,macrofauna,Araneae,Araneida
-Thomisidae,Arthropoda,Arachnida,NA,NA,Araneae,NA,NA,Thomisidae,NA,macrofauna,Araneae,Araneida
-Thonus,Nematoda,Chromadorea,NA,NA,Rhabditida ,NA,NA,NA,Thonus,microfauna,Nematoda,Nematoda
-Thysanoptera,Arthropoda,Insecta,NA,NA,Thysanoptera,NA,NA,NA,NA,mesofauna,Thysanoptera,Thysanoptera
-Tomoceridae,Arthropoda,Entognatha,Collembola,NA,Entomobryomorpha,NA,NA,Tomoceridae,NA,mesofauna,Collembola,Collembola
-Tylenchidae,Nematoda,Secernentea,NA,NA,Tylenchida,NA,NA,Tylenchidae,NA,microfauna,Nematoda,Nematoda
-Tylenchorhynchidae,Nematoda,Secernentea,NA,NA,Tylenchida,NA,NA,NA,Tylenchorhynchidae,microfauna,Nematoda,Nematoda
-Wilsonema,Nematoda,"	Chromadorea",NA,NA,Araeolaimida,NA,NA,Plectidae,Wilsonema,microfauna,Nematoda,Nematoda
+Highest_taxonomic_resolution,phylum,Taxa_Class,Taxa_subclass,superorder,Taxa_order,sub_order,infraorder,Taxa_Family,Taxa_genus,Functional_group_size,body_length,body_width_taxa,mean_width
+Acari,Arthropoda,Arachnida,NA,Acariformes,NA,NA,NA,NA,NA,mesofauna,Acari,Acari,1.1158
+Acrobeles,Nematoda,Chromadorea,NA,NA,Rhabditida ,NA,NA,Cephalobidae,Acrobeles,microfauna,Nematoda,Nematoda,0.0634
+Acrobeloides,Nematoda,Chromadorea,NA,NA,Rhabditida ,NA,NA,Cephalobidae,Acrobeloides,microfauna,Nematoda,Nematoda,0.0634
+Amphipoda,Arthropoda,Malacostraca,NA,NA,Amphipoda,NA,NA,NA,NA,mesofauna,Amphipoda,Amphipoda,8.8009
+Aphelenchoides,Nematoda,Chromadorea,NA,NA,NA,NA,NA,Aphelenchoididae ,Aphelenchoides,microfauna,Nematoda,Nematoda,0.0634
+Aphelenchoididae,Nematoda,Secernentea,NA,NA,Tylenchida,NA,NA,Aphelenchoididae,NA,microfauna,Nematoda,Nematoda,0.0634
+Aphelenchus,Nematoda,Chromadorea,NA,NA,NA,NA,NA,Aphelenchidae,Aphelenchus,microfauna,Nematoda,Nematoda,0.0634
+Aporcelaimellus,Nematoda,Enoplea ,NA,NA,Dorylaimida ,NA,NA,Aporcelaimidae,Aporcelaimellus,microfauna,Nematoda,Nematoda,0.0634
+Araneida,Arthropoda,Arachnida,NA,NA,Araneae,NA,NA,NA,NA,macrofauna,Araneae,Araneida,14.864
+Arthropods,Arthropoda,NA,NA,NA,NA,NA,NA,NA,NA,NA,Arthropods,Arthropods,14.2463
+Carabidae,Arthropoda,Insecta,NA,NA,Coleoptera,Adephaga,NA,Carabidae,NA,macrofauna,Coleoptera,Coleoptera,18.0707
+Cephalobidae,Nematoda,Chromadorea,NA,NA,Rhabditida,NA,NA,Cephalobidae,NA,microfauna,Nematoda,Nematoda,0.0634
+Cephalobus,Nematoda,Chromadorea,NA,NA,Rhabditida ,NA,NA,NA,Cephalobus,microfauna,Nematoda,Nematoda,0.0634
+Cervidellus,Nematoda,Chromadorea,NA,NA,Rhabditida ,NA,NA,Cephalobidae,Cervidellus,microfauna,Nematoda,Nematoda,0.0634
+Chilopoda,Arthropoda,Chilopoda,NA,NA,NA,NA,NA,NA,NA,macrofauna,Chilopoda,Chilopoda,14.6659
+Chrysomelidae,Arthropoda,NA,NA,NA,NA,NA,NA,Chrysomelidae,NA,macrofauna,Chrysomelidae,Chrysomelidae,6.35
+Coleoptera,Arthropoda,Insecta,NA,NA,Coleoptera,NA,NA,NA,NA,macrofauna,Coleoptera,Coleoptera,18.0707
+Collembola,Arthropoda,Entognatha,Collembola,NA,NA,NA,NA,NA,NA,mesofauna,Collembola,Collembola,1.0651
+Criconematidae,Nematoda,Secernentea,NA,NA,Tylenchida,NA,NA,Criconematidae,NA,microfauna,Nematoda,Nematoda,0.0634
+Curculionidae,Arthropoda,NA,NA,NA,NA,NA,NA,Curculionidae,NA,macrofauna,Curculionidae,Curculionidae,3.45
+Diplopoda,Arthropoda,Diplopoda,NA,NA,NA,NA,NA,NA,NA,macrofauna,Diplopoda,Diplopoda,18.7089
+Diplura,Arthropoda,Entognatha,Diplura,NA,NA,NA,NA,NA,NA,mesofauna,Diplura,Diplura,1.3151
+Diptera,Arthropoda,Insecta,NA,NA,Diptera,NA,NA,NA,NA,macrofauna,Diptera,Diptera,6
+Discolaimium,Nematoda,Enoplea,NA,NA,Dorylaimida ,NA,NA,Discolaimidae,Discolaimium,microfauna,Nematoda,Nematoda,0.0634
+Ditylenchus,Nematoda,Secernentea,NA,NA,NA,NA,NA,Anguinidae,Ditylenchus,microfauna,Nematoda,Nematoda,0.0634
+Enchytraeidae,Annelidae,Clitellata,NA,NA,Haplotaxida,NA,NA,Enchytraeidae,NA,mesofauna,Enchytraeidae,Enchytraeidae,1.2967
+Entomobryidae,Arthropoda,Entognatha,Collembola,NA,NA,NA,NA,Entomobryidae,NA,mesofauna,Collembola,Collembola,1.0651
+Entomobryomorpha,Arthropoda,Entognatha,Collembola,NA,Entomobryomorpha,NA,NA,NA,NA,mesofauna,Collembola,Collembola,1.0651
+Eudorylaimus,Nematoda,Enoplea,NA,NA,Dorylaimida ,NA,NA,Dorylaimidae,Eudorylaimus,microfauna,Nematoda,Nematoda,0.0634
+Gastropoda,Mollusca,Gastropoda,NA,NA,NA,NA,NA,NA,NA,macrofauna,Gastropoda,Gastropoda,0.0459
+Gnaphosidae,Arthropoda,Arachnida,NA,NA,Araneae,NA,NA,Gnaphosidae,NA,macrofauna,Araneae,Araneida,14.864
+Hemiptera,Arthropoda,Insecta,NA,NA,Hemiptera,NA,NA,NA,NA,macrofauna,Hemiptera,Hemiptera,8
+Heterocephalobus,Nematoda,Chromadorea,NA,NA,Rhabditida ,NA,NA,Cephalobidae,Heterocephalobus,microfauna,Nematoda,Nematoda,0.0634
+Hypogastruridae,Arthropoda,Entognatha,Collembola,NA,Poduromorpha,NA,NA,Hypogastruridae,NA,mesofauna,Collembola,Collembola,1.0651
+Isopoda,Arthropoda,Malacostraca,NA,NA,Isopoda,NA,NA,NA,NA,macrofauna,Isopoda,Ispoda,8.3264
+Isoptera,Arthropoda,Insecta,NA,NA,Blattodea,NA,Isoptera,NA,NA,mesofauna,Blattodea,Isoptera,2.1448
+Isotomidae,Arthropoda,Entognatha,Collembola,NA,Entomobryomorpha,NA,NA,Isotomidae,NA,mesofauna,Collembola,Collembola,1.0651
+Leptonchus,Nematoda,Enoplea,NA,NA,Dorylaimida ,NA,NA,NA,Leptonchus,microfauna,Nematoda,Nematoda,0.0634
+Lumbricidae,Annelidae,Clitellata,NA,NA,Opisthopora,NA,NA,Lumbricidae,NA,macrofauna,Lumbricina,Lumbricidae,16.1728
+Lycosidae,Arthropoda,Arachnida,NA,NA,Araneae,NA,NA,Lycosidae,NA,macrofauna,Araneae,Araneida,14.864
+Macroarthropods,Arthropoda,NA,NA,NA,NA,NA,NA,NA,NA,macrofauna,Macroarthropods ,Macroarthropods ,15.1463
+Megadrilacea,Annelidae,NA,NA,NA,NA,NA,NA,NA,NA,macrofauna,Megadrilacea,Megadrili,16.1728
+Mesofauna,Arthropoda,NA,NA,NA,NA,NA,NA,NA,NA,mesofauna,,,NA
+Mesostigmata,Arthropoda,Arachnida,NA,Parasitiformes,Mesostigmata,NA,NA,NA,NA,mesofauna,Mesostigmata,Mesostigmata,2.1
+Microarthropods,Arthropoda,NA,NA,NA,NA,NA,NA,NA,NA,mesofauna,Microarthropods,Microarthropods,1.1
+Microdorylaimus,Nematoda,Enoplea,NA,NA,Dorylaimida ,NA,NA,NA,Microdorylaimus,microfauna,Nematoda,Nematoda,0.0634
+Microlaimus,Nematoda,Chromadorea,NA,NA,Desmodorida,NA,NA,NA,Microlaimus,microfauna,Nematoda,Nematoda,0.0634
+Mollusca,Mollusca,NA,NA,NA,NA,NA,NA,NA,NA,megafauna,,Mollusca,34.3029
+Monhystendae,Nematoda,Chromadorea,NA,NA,Monhysterida,NA,NA,Monhysteridae,Monhystendae,microfauna,Nematoda,Nematoda,0.0634
+Neelipleona,Arthropoda,Entognatha,Collembola,NA,Neelipleona,NA,NA,Neelidae,NA,mesofauna,Collembola,Collembola,1.0651
+Nematoda,Nematoda,NA,NA,NA,NA,NA,NA,NA,NA,microfauna,Nematoda,Nematoda,0.0634
+Nitulidae,Arthropoda,NA,NA,NA,NA,NA,NA,Nitulidae,NA,macrofauna,Nitulidae,Nitulidae,1.425
+Oniscidea,Arthropoda,Malacostraca,NA,Peracarida,Isopoda,Oniscidea,NA,NA,NA,macrofauna,Isopoda,Ispoda,8.3264
+Opiliones,Arthropoda,Arachnida,NA,NA,Opiliones,NA,NA,NA,NA,macrofauna,Opiliones,Opiliones,6.7427
+Oribatida,Arthropoda,Arachnida,Acari,Acariformes,Oribatida,NA,NA,NA,NA,mesofauna,Oribatida,Acari,1.1158
+Plectidae,Nematoda,Chromadorea,NA,NA,Araeolaimida,NA,NA,Plectidae,NA,microfauna,Nematoda,Nematoda,0.0634
+Plectus,Nematoda,Plectidae,NA,NA,NA,NA,NA,NA,Plectus,microfauna,Nematoda,Nematoda,0.0634
+Poduromorpha,Arthropoda,Entognatha,Collembola,NA,Poduromorpha,NA,NA,NA,NA,mesofauna,Collembola,Collembola,1.0651
+Prismatolaimus,Nematoda,Enoplea,NA,NA,Enoplida,NA,NA,Prismatolaimidae,Prismatolaimus,microfauna,Nematoda,Nematoda,0.0634
+Prostigmata,Arthropoda,Arachnida,NA,NA,Trombidiformes,NA,Prostigmata,NA,NA,mesofauna,Prostigmata,Prostigmata,1.05
+Protista,NA,NA,NA,NA,NA,NA,NA,NA,NA,microfauna,Protists,,NA
+Protozoa,NA,NA,NA,NA,NA,NA,NA,NA,NA,microfauna,Protists,Protozoa,0.0675
+Protura,Arthropoda,Entognatha,Protura,NA,NA,NA,NA,NA,NA,mesofauna,Protura,Protura,0.4113
+Pseudoscorpiones,Arthropoda,Arachnida,NA,NA,Pseudoscorpiones,NA,NA,NA,NA,mesofauna,Pseudoscorpiones,,NA
+Psocoptera,Arthropoda,Insecta,NA,NA,Psocoptera,NA,NA,NA,NA,macrofauna,Psocoptera,Psocoptera,1.05
+Pungentus,Nematoda,Enoplea,NA,NA,Dorylaimida,NA,NA,Nordiidae,Pungentus,microfauna,Nematoda,Nematoda,0.0634
+Qudsianematidae,Nematoda,Enoplea,NA,NA,Dorylaimida,NA,NA,Qudsianematidae,NA,microfauna,Nematoda,Nematoda,0.0634
+Rotifera,Rotifera,NA,NA,NA,NA,NA,NA,NA,NA,microfauna,Rotifera,Rotifera,0.0779
+Scarabaeidae,Arthropoda,NA,NA,NA,NA,NA,NA,Scarabaeidae,NA,macrofauna,Scarabaeidae,Scarabaeidae,1.955
+Scolytidae,Arthropoda,NA,NA,NA,NA,NA,NA,Scolytidae,NA,macrofauna,Scolytidae,Scolytidae,2.21
+Seinura,Nematoda,Enoplea,NA,NA,Dorylaimida,NA,NA,Qudsianematidae,Seinura,microfauna,Nematoda,Nematoda,0.0634
+Sminthuridae,Arthropoda,Entognatha,Collembola,NA,Symphypleona,NA,NA,Sminthuridae,NA,mesofauna,Collembola,Collembola,1.0651
+Soil fauna,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,34.3029
+Staphylinidae,Arthropoda,NA,NA,NA,NA,NA,NA,Staphylinidae,NA,macrofauna,Staphylinidae,Staphylinidae,5.675
+Symphyla,Arthropoda,Symphyla,NA,NA,NA,NA,NA,NA,NA,mesofauna,Symphyla,Symphyla,1.7678
+Symphypleona,Arthropoda,Entognatha,Collembola,NA,Symphypleona,NA,NA,NA,NA,mesofauna,Collembola,Collembola,1.0651
+Tardigrada ,Tardigrada,NA,NA,NA,NA,NA,NA,NA,NA,microfauna,Tardigrada,Tardigrada ,0.192
+Testate amoebae,NA,NA,NA,NA,NA,NA,NA,NA,NA,microfauna,Testate amoebae,,NA
+Theridiidae,Arthropoda,Arachnida,NA,NA,Araneae,NA,NA,Theridiidae,NA,macrofauna,Araneae,Araneida,14.864
+Thomisidae,Arthropoda,Arachnida,NA,NA,Araneae,NA,NA,Thomisidae,NA,macrofauna,Araneae,Araneida,14.864
+Thonus,Nematoda,Chromadorea,NA,NA,Rhabditida ,NA,NA,NA,Thonus,microfauna,Nematoda,Nematoda,0.0634
+Thysanoptera,Arthropoda,Insecta,NA,NA,Thysanoptera,NA,NA,NA,NA,mesofauna,Thysanoptera,Thysanoptera,1.05
+Tomoceridae,Arthropoda,Entognatha,Collembola,NA,Entomobryomorpha,NA,NA,Tomoceridae,NA,mesofauna,Collembola,Collembola,1.0651
+Tylenchidae,Nematoda,Secernentea,NA,NA,Tylenchida,NA,NA,Tylenchidae,NA,microfauna,Nematoda,Nematoda,0.0634
+Tylenchorhynchidae,Nematoda,Secernentea,NA,NA,Tylenchida,NA,NA,NA,Tylenchorhynchidae,microfauna,Nematoda,Nematoda,0.0634
+Wilsonema,Nematoda,"	Chromadorea",NA,NA,Araeolaimida,NA,NA,Plectidae,Wilsonema,microfauna,Nematoda,Nematoda,0.0634
