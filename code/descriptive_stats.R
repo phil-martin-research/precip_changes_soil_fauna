@@ -8,6 +8,7 @@ pacman::p_load(tidyverse,cowplot,metafor)
 abundance<-read.csv("data/abundance_data.csv")
 fauna_data<-read.csv("data/fauna_data.csv")
 sites<-read.csv("data/sites.csv")
+critical_appraisal<-read.csv("data/critical_appraisal.csv")
 
 #####################################################
 #1 - how much data has information on size of fauna##
@@ -29,6 +30,8 @@ ggsave("figures/for_paper/body_width_histogram.png",width = 15,height = 10,units
 #2 - what season is sampling done in?#################
 ######################################################
 
+total_es<-length(fauna_data$lnrr_laj)
+
 unique(outcomes$sampling_season)
 
 fauna_data%>%
@@ -48,6 +51,14 @@ ggplot(aes(sampling_season,no_es,fill=sampling_season))+
   theme(legend.position = "none")+
   labs(x="Sampling season",y="No. of effect sizes")
 ggsave("figures/for_paper/sampling_season.png",width = 15,height = 10,units = "cm",dpi = 300)
+
+fauna_data%>%
+  filter(detailed_outcome=="abundance"|detailed_outcome=="taxonomic richness"|detailed_outcome=="shannon wiener")%>%
+  filter(!is.na(sampling_season))%>%
+  filter(sampling_season!="")%>%
+  group_by(sampling_season)%>%
+  summarise(no_es=length(disturbance_av),
+            perc_es=length(disturbance_av)/total_es)
 
 #########################################################
 #3 - Study length########################################
@@ -131,6 +142,17 @@ sites%>%
   group_by(exp_obs)%>%
   summarise(no_es=length(exp_obs),
             perc_es=length(exp_obs)/study_length)
-  
-  
 
+
+  
+  
+#################################################################
+#8 - critical appraisal##########################################
+#################################################################
+
+
+
+critical_appraisal%>%
+  group_by(Validity)%>%
+  summarise(no_studies=length(Validity),
+            perc_studies=length(Validity)/38)
