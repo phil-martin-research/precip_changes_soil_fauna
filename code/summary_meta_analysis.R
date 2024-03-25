@@ -185,4 +185,4 @@ facet_summary_plot_with_label3<-tag_facet(facet_summary_plot_with_label2)+
         strip.background = element_rect(fill="white",color = "black", size = 1))
 facet_summary_plot_with_label3
 
-ggsave("figures/for_paper/abun_div_summary_facet.png",facet_summary_plot_with_label3,width = 13,height = 20,units = "cm",dpi = 300)
+ggsave("figures/for_paper/abun_div_summary_facet.png",facet_summary_plot_with_label3,width = 14,height = 20,units = "cm",dpi = 300)

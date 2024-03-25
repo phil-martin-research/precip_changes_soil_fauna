@@ -201,8 +201,7 @@ soil_fauna_rr%>%
 
 #subset dataset to get variables of interest for first set of analyses
 #all relevant data
-fauna_all <- filter(soil_fauna_rr, detailed_outcome=="abundance"|detailed_outcome=="taxonomic richness"|detailed_outcome=="shannon wiener",
-                    use_for_first_analysis==TRUE)
+fauna_all <- filter(soil_fauna_rr, detailed_outcome=="abundance"|detailed_outcome=="taxonomic richness"|detailed_outcome=="shannon wiener")
 
 # All abundance 
 fauna_ab <- filter(soil_fauna_rr, broad_outcome == 'abundance',use_for_first_analysis==TRUE)
