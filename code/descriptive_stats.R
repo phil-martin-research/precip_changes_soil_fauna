@@ -144,7 +144,23 @@ sites%>%
             perc_es=length(exp_obs)/study_length)
 
 
-  
+names(sites)
+
+sites%>%
+  group_by(before_after)%>%
+  summarise(no_es=length(before_after),
+            perc_es=length(before_after)/study_length)
+
+sites%>%
+  group_by(controlled)%>%
+  summarise(no_es=length(controlled),
+            perc_es=length(controlled)/study_length)
+
+sites%>%
+  group_by(controlled,before_after)%>%
+  summarise(no_es=length(controlled),
+            perc_es=length(controlled)/study_length)
+
   
 #################################################################
 #8 - critical appraisal##########################################

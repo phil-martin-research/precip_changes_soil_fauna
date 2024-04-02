@@ -98,13 +98,13 @@ M15<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*exoskeleton+sqrt_inv_n_
 #17 - impacts of precipitation change is modified by whether organism has an exoskeleton or not plus year and small study
 M16<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*exoskeleton+year.c+sqrt_inv_n_tilda-1,random=~1|Study_ID/Site_ID/obsID,data=abundance_complete)
 #18 - impacts of precipitation change is modified by whether ecosystem is humid or dry
-M17<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*arid_class-1,random=~1|Study_ID/Site_ID/obsID,data=abundance_complete)
+M17<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*arid_class+I(perc_annual_dist^2)*arid_class-1,random=~1|Study_ID/Site_ID/obsID,data=abundance_complete)
 #19 - impacts of precipitation change is modified by whether ecosystem is humid or dry plus year effect
-M18<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*arid_class+year.c-1,random=~1|Study_ID/Site_ID/obsID,data=abundance_complete)
+M18<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*arid_class+I(perc_annual_dist^2)*arid_class+year.c-1,random=~1|Study_ID/Site_ID/obsID,data=abundance_complete)
 #20 - impacts of precipitation change is modified by whether ecosystem is humid or dry plus small study effect
-M19<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*arid_class+sqrt_inv_n_tilda-1,random=~1|Study_ID/Site_ID/obsID,data=abundance_complete)
+M19<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*arid_class+I(perc_annual_dist^2)*arid_class+sqrt_inv_n_tilda-1,random=~1|Study_ID/Site_ID/obsID,data=abundance_complete)
 #21 - impacts of precipitation change is modified by whether ecosystem is humid or dry plus year and small study
-M20<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*arid_class+year.c+sqrt_inv_n_tilda-1,random=~1|Study_ID/Site_ID/obsID,data=abundance_complete)
+M20<-rma.mv(lnrr_laj,v_lnrr_laj,mods = ~perc_annual_dist*arid_class+I(perc_annual_dist^2)*arid_class+year.c+sqrt_inv_n_tilda-1,random=~1|Study_ID/Site_ID/obsID,data=abundance_complete)
 
 #create a model selection table of these models
 abun_model_sel<-model.sel(M1,M2,M3,M4,M5,M6,M7,M8,M9,M10,M11,M12,M13,M14,M15,M16,M17,M18,M19,M20)
