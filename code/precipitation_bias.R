@@ -19,48 +19,85 @@ site_data_unique<-site_data%>%mutate(disturbance_type2=if_else(disturbance_type=
 
 #get future data and format
 #mid-range 2050 scenario
-precip_2050<-cmip6_world(model="HadGEM3-GC31-LL",ssp=245,time="2041-2060",var="prec",res=2.5,path="data/spatial_data/climate")
-precip_2050_brick<-brick(precip_2050)
-precip_2050_total<-calc(precip_2050_brick,fun=sum,filename="data/spatial_data/climate/precip_2050.tif") #sum precipitation for all months
 
-#worst-case  2070 scenario
-precip_2070<-cmip6_world(model = "HadGEM3-GC31-LL",ssp = 585,time = "2061-2080",var="prec",res=2.5,path="data/spatial_data/climate")
-precip_2070_brick<-brick(precip_2070)
-precip_2070_total<-calc(precip_2070_brick,fun=sum,filename="data/spatial_data/climate/precip_2070_worst.tif") #sum precipitation for all months
+#create string for all the different climate models
+
+climate_models<-c("ACCESS-CM2", "ACCESS-ESM1-5", "AWI-CM-1-1-MR", 
+                  "BCC-CSM2-MR", "CanESM5", "CanESM5-CanOE", "CMCC-ESM2", 
+                  "CNRM-CM6-1", "CNRM-CM6-1-HR", "CNRM-ESM2-1", 
+                  "EC-Earth3-Veg", "EC-Earth3-Veg-LR", "FIO-ESM-2-0", 
+                  "GFDL-ESM4", "GISS-E2-1-G", "GISS-E2-1-H", "HadGEM3-GC31-LL", 
+                  "INM-CM4-8", "INM-CM5-0", "IPSL-CM6A-LR", "MIROC-ES2L", 
+                  "MIROC6", "MPI-ESM1-2-HR", "MPI-ESM1-2-LR", "MRI-ESM2-0", "UKESM1-0-LL")
+
+
+
+
 
 #get current data and format
 precip_present<-worldclim_global("prec",res=2.5,path="data/spatial_data/climate")
 precip_present_brick<-brick(precip_present)
-precip_present_total<-calc(precip_present_brick,sum,filename="data/spatial_data/climate/precip_current.tif") #sum precipitation for all months
+precip_present_total<-raster::calc(precip_present_brick,sum,filename="data/spatial_data/climate/precip_current.tif") #sum precipitation for all months
 
-#import saved data
-precip_2050_total<-raster("data/spatial_data/climate/precip_2050.tif")
-precip_2070_total<-raster("data/spatial_data/climate/precip_2070_worst.tif")
-precip_present_total<-raster("data/spatial_data/climate/precip_current.tif")
-
-# extract precip at each site 
+# extract current precipitation at each site 
 coords<-data.frame(lon=site_data_unique$lon, lat=site_data_unique$lat)
 coordinates(coords)<-c("lon","lat")
 
-#extract data from raster and append to df
+precip_present_total<-raster("data/spatial_data/climate/precip_current.tif")
 precip_present_extracted <-raster::extract(x=precip_present_total, y=coords)
-precip_50_extracted <-raster::extract(x=precip_2050_total, y=coords)
-precip_70_extracted <-raster::extract(x=precip_2070_total, y=coords)
-
-#append these to the site dataframe
 site_data_unique$precip_present<-precip_present_extracted
-site_data_unique$precip_50<-precip_50_extracted
-site_data_unique$precip_70<-precip_70_extracted
 
-#calculate precipitation manipulation in mm for studies
-site_data_unique$precip_change_study<-site_data_unique$precip_present+(site_data_unique$precip_present*(site_data_unique$perc_annual_dist/100))
 
-#where value is 0 add a 0.1
-site_data_unique$precip_change_study_edited<-ifelse(site_data_unique$precip_change_study==0,0.1,site_data_unique$precip_change_study)
+?cmip6_world
 
-#calculate difference in projected vs experimental changes in log response ratios
-site_data_unique$precip_exp_proj50<-log(site_data_unique$precip_change_study_edited)-log(site_data_unique$precip_50)
-site_data_unique$precip_exp_proj70<-log(site_data_unique$precip_change_study_edited)-log(site_data_unique$precip_70)
+for (i in 1:3){
+  precip_2050<-cmip6_world(model=climate_models[[i]],ssp=245,time="2041-2060",var="prec",res=2.5,path=tempdir())
+  precip_2050_brick<-brick(precip_2050)
+  precip_2050_total<-raster::calc(precip_2050_brick,fun=sum,filename=paste("data/spatial_data/climate/scenario_sums/precip_2050_",
+                                                                           climate_models[[i]],".tif",sep = ""),overwrite=TRUE) #sum precipitation for all months
+}
+
+plot(precip_2050)
+
+cmip6_world(model=climate_models[[i]],ssp=245,time="2041-2060",var="prec",res=2.5,path="data/spatial_data/climate",lon=116.972222,lat=4.745833)
+
+#run a loop to:
+#1 - import scenario data
+#2 - extract data from each scenario
+#3 - add column to dataframe for each scenario
+#4 - add column with model name to each dataframe
+##5 - stack dataframes on top of each other
+
+
+#import saved data
+
+#list of all scenarios
+scenario_list<-list.files("data/spatial_data/climate/scenario_sums/",pattern=".tif")
+
+for (i in 1:length(scenario_list)){
+  i<-1
+  precip_2050_total<-raster(paste("data/spatial_data/climate/scenario_sums/",scenario_list[[i]],sep=""))
+  precip_50_extracted <-raster::extract(x=precip_2050_total, y=coords)
+  site_data_unique$precip_50<-precip_50_extracted
+  #where value is 0 add a 0.1
+  site_data_unique$precip_change_study_edited<-ifelse(site_data_unique$perc_annual_dist==0,0.1,site_data_unique$perc_annual_dist)
+  #calculate difference in projected vs experimental changes in log response ratios
+  site_data_unique$precip_exp_proj50<-log(site_data_unique$precip_change_study_edited)-log(site_data_unique$precip_50)
+}
+
+plot(precip_2050_total)
+
+precip_2050_total<-raster("data/spatial_data/climate/scenario_sums/precip_2050_ACCESS-CM2.tif")
+
+
+
+precip_2070_total<-raster("data/spatial_data/climate/precip_2070_worst.tif")
+
+
+
+
+
+
 
 
 #test the difference of this to zero
