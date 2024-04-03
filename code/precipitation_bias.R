@@ -4,7 +4,10 @@ rm(list = ls())
 
 
 #load the packages
-pacman::p_load(raster,tidyverse,ggpubr,geodata,ggbeeswarm,nlme,lme4,bernr,cowplot,scales,ggtext)
+pacman::p_load(raster,tidyverse,ggpubr,geodata,ggbeeswarm,nlme,lme4,bernr,cowplot,scales,ggtext,lemon)
+
+
+pacman::p_cite(geodata)
 
 #import site data
 site_data<-read.csv("data/fauna_spatial_data.csv")
@@ -48,15 +51,15 @@ precip_present_extracted <-raster::extract(x=precip_present_total, y=coords)
 site_data_unique$precip_present<-precip_present_extracted
 
 
-for (i in 1:3){
+for (i in 1:length(climate_models)){
+  tryCatch(
+  {
   precip_2050<-cmip6_world(model=climate_models[[i]],ssp=245,time="2041-2060",var="prec",res=2.5,path=tempdir())
   precip_2050_brick<-brick(precip_2050)
   precip_2050_total<-raster::calc(precip_2050_brick,fun=sum,filename=paste("data/spatial_data/climate/scenario_sums/precip_2050_",
                                                                            climate_models[[i]],".tif",sep = ""),overwrite=TRUE) #sum precipitation for all months
+},error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
 }
-
-
-cmip6_world(model=climate_models[[i]],ssp=245,time="2041-2060",var="prec",res=2.5,path="data/spatial_data/climate",lon=116.972222,lat=4.745833)
 
 #run a loop to:
 #1 - import scenario data
@@ -75,7 +78,7 @@ site_data_unique$precip_change_study_edited<-ifelse(site_data_unique$precip_chan
 
 #list of all scenarios
 scenario_files<-list.files("data/spatial_data/climate/scenario_sums/",pattern=".tif")
-scenario_list<-gsub("[^_]+_[^_]+_|\\..*", "", scenario_list)
+scenario_list<-gsub("[^_]+_[^_]+_|\\..*", "", scenario_files)
 
 site_climate_models<-tibble()
 bias_preds_summary<-tibble()
@@ -93,6 +96,7 @@ for (i in 1:length(scenario_files)){
   
   #run model for each climate model to test difference from zero
   bias_model<-lme(precip_exp_proj50~disturbance_type2-1,random=~1|Study_ID,data=temp_sites)
+  bias_model_sum<-summary(bias_model)
   #create new data for prediction
   new_data<-data.frame(disturbance_type2=unique(site_data_unique$disturbance_type2))
   #predict response
@@ -100,57 +104,102 @@ for (i in 1:length(scenario_files)){
   bias_preds$perc_pred<-(exp(bias_preds$pred)-1)*100
   bias_preds$perc_pred_label<-ifelse(bias_preds$ci_h<0&bias_preds$ci_h<0|bias_preds$ci_h>0&bias_preds$ci_h>0,
                                      paste(round(bias_preds$perc_pred),c("%*","%"),sep=""))
+  bias_preds$p_val<-rev(bias_model_sum$tTable[,5])
   bias_preds$climate_model<-scenario_list[i]
   bias_preds_summary<-rbind(bias_preds_summary,bias_preds)
 }
 
 
+site_climate_models$climate_model_label<-fct_rev(as.factor(site_climate_models$climate_model))
+site_climate_models$disturbance_label<-fct_rev(as.factor(site_climate_models$disturbance_type2))
 
 #plot raw data
-ggplot(site_climate_models,aes(x=(exp(precip_exp_proj50)-1)*100,y=disturbance_type2,colour=climate_model,fill=climate_model))+
+ggplot(site_climate_models,aes(x=(exp(precip_exp_proj50)-1)*100,y=climate_model_label,colour=climate_model_label,fill=climate_model_label))+
   geom_vline(xintercept = 0,lty=2)+
   geom_violin(position = position_dodge(width = 0.9),alpha=0.3)+
-  geom_beeswarm(dodge.width=0.9)+
+  geom_beeswarm(dodge.width=0.9,alpha=0.5)+
   theme_cowplot()+
   scale_fill_viridis_d("Climate\nmodel")+
-  scale_colour_viridis_d("Climate\nmodel")
+  scale_colour_viridis_d("Climate\nmodel")+
+  facet_rep_wrap(~disturbance_label,repeat.tick.labels = TRUE,scales = "free")+
+  theme(legend.position = "none",
+        axis.text = element_text(size=8))+
+  labs(x="Difference between study and\nprojected precipitation (%)",
+       y="Climate model")
 
+
+bias_preds_summary$climate_model_label<-fct_rev(as.factor(bias_preds_summary$climate_model))
+bias_preds_summary$disturbance_label<-fct_rev(as.factor(bias_preds_summary$disturbance_type2))
 
 #error plot of this
-precip_bias_plot<-ggplot(bias_preds_summary,aes(pred,disturbance_type2,colour=climate_model))+
-  geom_errorbarh(aes(xmin=ci_l,xmax=ci_h),height=0.2,linewidth=1,alpha=0.8,position = position_dodge(width = 0.9))+
-  geom_point(size=4,position = position_dodge(width = 0.9))+
+precip_bias_plot<-ggplot(bias_preds_summary,aes(pred,climate_model_label,colour=climate_model_label))+
+  geom_errorbarh(aes(xmin=ci_l,xmax=ci_h),height=0.2,linewidth=0.5,alpha=0.8,position = position_dodge(width = 0.9))+
+  geom_point(size=2,position = position_dodge(width = 0.9))+
   scale_colour_viridis_d("Climate\nmodel")+
+  geom_vline(xintercept = 0,lty=2)+
+  facet_rep_wrap(~disturbance_label,repeat.tick.labels = TRUE,scales = "free")+
+  theme_cowplot()+
+  labs(x="Difference between study and\nprojected precipitation (lnRR)",
+       y="Disturbance type")+
+  theme(text=element_text(size=12),
+      axis.text=element_text(size=6),
+      legend.position = "none")
+precip_bias_plot
+ggsave("figures/for_paper/precipitation_bias__multiple_models_error_plot.png",width = 20,height=10,units = "cm",dpi = 300)
+
+
+#summary error plot
+
+#work out median values for statistical models
+bias_preds_summary2<-bias_preds_summary%>%
+  group_by(disturbance_label)%>%
+  summarise(med_pred=median(pred),
+            med_ci_l=median(ci_l),
+            med_ci_h=median(ci_h),
+            med_se=median(se),
+            med_pval=median(p_val))%>%
+  mutate(med_perc_pred=(exp(med_pred)-1)*100,
+         med_perc_pred_label=ifelse(med_ci_h<0&med_ci_l<0|med_ci_h>0&med_ci_l>0,
+                                    paste(round(med_perc_pred),"%*",sep=""),
+                                    paste(round(med_perc_pred),"%",sep="")))
+
+
+bias_preds_summary2$disturbance_label2<-fct_rev(as.factor(bias_preds_summary2$disturbance_label))
+
+
+precip_bias_plot<-ggplot(bias_preds_summary2,aes(med_pred,disturbance_label2,colour=disturbance_label2))+
+  geom_errorbarh(aes(xmin=med_ci_l,xmax=med_ci_h),height=0.2,linewidth=1,alpha=0.8,position = position_dodge(width = 0.9))+
+  geom_point(size=4,position = position_dodge(width = 0.9))+
+  scale_color_manual("Disturbance type",values = c("#1f9e89","#fde725"))+
   geom_vline(xintercept = 0,lty=2)+
   theme_cowplot()+
   labs(x="Difference between study and\nprojected precipitation (lnRR)",
        y="Disturbance type")+
-  geom_text(aes(x=c(-2,2),y=disturbance_type2,label=perc_pred_label),hjust   = 0.3,vjust   = -2,colour="black")+
+  geom_text(aes(x=c(-2,1.5),y=disturbance_label2,label=med_perc_pred_label),hjust   = 0.3,vjust   = -2,colour="black")+
   theme(text=element_text(size=12),
-      axis.text=element_text(size=10),
-      legend.position = "none")
+        axis.text=element_text(size=10),
+        legend.position = "none")
 precip_bias_plot
-ggsave("figures/for_paper/precipitation_bias_error_plot.png",width = 12,height=10,units = "cm",dpi = 300)
 
 
 
 #bias associated with plot area and body size
-site_data<-read.csv("data/site_data_2023_06_07.csv")
-fact_table<-read.csv("data/fact_table_2023_08_06.csv")
+site_data<-read.csv("data/sites.csv")
+fact_table<-read.csv("data/outcomes.csv")
 
 site_bias_data<-fact_table%>%left_join(site_data,"Site_ID")%>%
                              filter(use_for_first_analysis==TRUE,!is.na(Functional_group_size))%>%
-                             distinct(Site_ID,plot_area.y,perc_annual_dist,Functional_group_size,exp_obs)%>%
+                             distinct(Site_ID,plot_area,perc_annual_dist,Functional_group_size,exp_obs)%>%
                              filter(Functional_group_size!="",exp_obs=="experimental")
 
 
 site_bias_data%>%
   group_by(Functional_group_size)%>%
-  summarise(med_area=median(plot_area.y,na.rm=TRUE))
+  summarise(med_area=median(plot_area,na.rm=TRUE))
 
 names(site_bias_data)
 
-plot_bias_plot<-ggplot(site_bias_data,aes(Functional_group_size,plot_area.y,fill=Functional_group_size,colour=Functional_group_size))+
+plot_bias_plot<-ggplot(site_bias_data,aes(Functional_group_size,plot_area,fill=Functional_group_size,colour=Functional_group_size))+
   geom_boxplot(alpha=0.5)+
   theme_cowplot()+
   scale_x_discrete(limits=rev)+
@@ -164,4 +213,3 @@ plot_bias_plot<-ggplot(site_bias_data,aes(Functional_group_size,plot_area.y,fill
 #combine the two plots
 bias_plots<-plot_grid(precip_bias_plot,plot_bias_plot,labels = c("(a)","(b)"))
 save_plot("figures/for_paper/bias_plots.png",bias_plots,base_height = 10,base_width = 20,units="cm",dpi=300)
-save_plot("figures/for_paper/bias_plots.pdf",bias_plots,base_height = 10,base_width = 20,units="cm",dpi=300)
