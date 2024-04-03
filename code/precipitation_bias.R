@@ -48,8 +48,6 @@ precip_present_extracted <-raster::extract(x=precip_present_total, y=coords)
 site_data_unique$precip_present<-precip_present_extracted
 
 
-?cmip6_world
-
 for (i in 1:3){
   precip_2050<-cmip6_world(model=climate_models[[i]],ssp=245,time="2041-2060",var="prec",res=2.5,path=tempdir())
   precip_2050_brick<-brick(precip_2050)
@@ -57,7 +55,6 @@ for (i in 1:3){
                                                                            climate_models[[i]],".tif",sep = ""),overwrite=TRUE) #sum precipitation for all months
 }
 
-plot(precip_2050)
 
 cmip6_world(model=climate_models[[i]],ssp=245,time="2041-2060",var="prec",res=2.5,path="data/spatial_data/climate",lon=116.972222,lat=4.745833)
 
@@ -69,54 +66,61 @@ cmip6_world(model=climate_models[[i]],ssp=245,time="2041-2060",var="prec",res=2.
 ##5 - stack dataframes on top of each other
 
 
+#calculate precipitation manipulation in mm for studies
+site_data_unique$precip_change_study<-site_data_unique$precip_present+(site_data_unique$precip_present*(site_data_unique$perc_annual_dist/100))
+#where value is 0 add a 0.1
+site_data_unique$precip_change_study_edited<-ifelse(site_data_unique$precip_change_study==0,0.1,site_data_unique$precip_change_study)
+
 #import saved data
 
 #list of all scenarios
-scenario_list<-list.files("data/spatial_data/climate/scenario_sums/",pattern=".tif")
+scenario_files<-list.files("data/spatial_data/climate/scenario_sums/",pattern=".tif")
+scenario_list<-gsub("[^_]+_[^_]+_|\\..*", "", scenario_list)
 
-for (i in 1:length(scenario_list)){
-  i<-1
-  precip_2050_total<-raster(paste("data/spatial_data/climate/scenario_sums/",scenario_list[[i]],sep=""))
+site_climate_models<-tibble()
+bias_preds_summary<-tibble()
+for (i in 1:length(scenario_files)){
+  temp_sites<-site_data_unique
+  precip_2050_total<-raster(paste("data/spatial_data/climate/scenario_sums/",scenario_files[[i]],sep=""))
   precip_50_extracted <-raster::extract(x=precip_2050_total, y=coords)
-  site_data_unique$precip_50<-precip_50_extracted
-  #where value is 0 add a 0.1
-  site_data_unique$precip_change_study_edited<-ifelse(site_data_unique$perc_annual_dist==0,0.1,site_data_unique$perc_annual_dist)
+  temp_sites$precip_50<-precip_50_extracted
   #calculate difference in projected vs experimental changes in log response ratios
-  site_data_unique$precip_exp_proj50<-log(site_data_unique$precip_change_study_edited)-log(site_data_unique$precip_50)
+  temp_sites$precip_exp_proj50<-log(temp_sites$precip_change_study_edited)-log(temp_sites$precip_50)
+  temp_sites$climate_model<-scenario_list[i]
+  
+  #combine data for all climate models
+  site_climate_models<-rbind(site_climate_models,temp_sites)
+  
+  #run model for each climate model to test difference from zero
+  bias_model<-lme(precip_exp_proj50~disturbance_type2-1,random=~1|Study_ID,data=temp_sites)
+  #create new data for prediction
+  new_data<-data.frame(disturbance_type2=unique(site_data_unique$disturbance_type2))
+  #predict response
+  bias_preds<-bolker_ci(bias_model,new_data,pred_int = TRUE,conf_level = 0.95)
+  bias_preds$perc_pred<-(exp(bias_preds$pred)-1)*100
+  bias_preds$perc_pred_label<-ifelse(bias_preds$ci_h<0&bias_preds$ci_h<0|bias_preds$ci_h>0&bias_preds$ci_h>0,
+                                     paste(round(bias_preds$perc_pred),c("%*","%"),sep=""))
+  bias_preds$climate_model<-scenario_list[i]
+  bias_preds_summary<-rbind(bias_preds_summary,bias_preds)
 }
 
-plot(precip_2050_total)
-
-precip_2050_total<-raster("data/spatial_data/climate/scenario_sums/precip_2050_ACCESS-CM2.tif")
 
 
+#plot raw data
+ggplot(site_climate_models,aes(x=(exp(precip_exp_proj50)-1)*100,y=disturbance_type2,colour=climate_model,fill=climate_model))+
+  geom_vline(xintercept = 0,lty=2)+
+  geom_violin(position = position_dodge(width = 0.9),alpha=0.3)+
+  geom_beeswarm(dodge.width=0.9)+
+  theme_cowplot()+
+  scale_fill_viridis_d("Climate\nmodel")+
+  scale_colour_viridis_d("Climate\nmodel")
 
-precip_2070_total<-raster("data/spatial_data/climate/precip_2070_worst.tif")
-
-
-
-
-
-
-
-
-#test the difference of this to zero
-bias_model<-lme(precip_exp_proj50~disturbance_type2-1,random=~1|Study_ID,data=site_data_unique)
-summary(bias_model)
-
-#create new data for prediction
-new_data<-data.frame(disturbance_type2=unique(site_data_unique$disturbance_type2))
-
-#predict response
-bias_preds<-bolker_ci(bias_model,new_data,pred_int = TRUE,conf_level = 0.95)
-bias_preds$perc_pred<-(exp(bias_preds$pred)-1)*100
-bias_preds$perc_pred_label<-paste(round(bias_preds$perc_pred),c("%*","%"),sep="")
 
 #error plot of this
-precip_bias_plot<-ggplot(bias_preds,aes(pred,disturbance_type2,colour=disturbance_type2))+
-  geom_errorbarh(aes(xmin=ci_l,xmax=ci_h),height=0.2,linewidth=1,alpha=0.8)+
-  geom_point(size=4)+
-  scale_color_manual("Disturbance type",values = c("#1f9e89","#fde725"))+
+precip_bias_plot<-ggplot(bias_preds_summary,aes(pred,disturbance_type2,colour=climate_model))+
+  geom_errorbarh(aes(xmin=ci_l,xmax=ci_h),height=0.2,linewidth=1,alpha=0.8,position = position_dodge(width = 0.9))+
+  geom_point(size=4,position = position_dodge(width = 0.9))+
+  scale_colour_viridis_d("Climate\nmodel")+
   geom_vline(xintercept = 0,lty=2)+
   theme_cowplot()+
   labs(x="Difference between study and\nprojected precipitation (lnRR)",
