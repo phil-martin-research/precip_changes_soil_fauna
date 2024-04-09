@@ -132,7 +132,7 @@ fauna_data<-fauna_data%>%
   facet_rep_wrap(~detailed_outcome,scales = "free_x",repeat.tick.labels = TRUE,ncol=1)+
   scale_fill_manual("Disturbance type",values = c("#1f9e89","#fde725"))+
   scale_color_manual("Disturbance type",values = c("#1f9e89","#fde725"))+
-  scale_size_continuous(range = c(1,10))+
+  scale_size_continuous(range = c(1,10),transform = "sqrt")+
   labs(y="Disturbance type",x="Change in soil and litter fauna\noutcome (log response ratio)")+
   guides(size = "none")+
   theme(text=element_text(size=12),
@@ -185,4 +185,4 @@ facet_summary_plot_with_label3<-tag_facet(facet_summary_plot_with_label2)+
         strip.background = element_rect(fill="white",color = "black", size = 1))
 facet_summary_plot_with_label3
 
-ggsave("figures/for_paper/abun_div_summary_facet.png",facet_summary_plot_with_label3,width = 14,height = 20,units = "cm",dpi = 300)
+ggsave("figures/for_paper/abun_div_summary_facet.png",facet_summary_plot_with_label3,width = 16,height = 17,units = "cm",dpi = 300)

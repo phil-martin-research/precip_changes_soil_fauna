@@ -209,6 +209,7 @@ ggplot(aes(x=perc_annual_dist,y=pred,colour=Functional_group_size,fill=Functiona
   ylab("Change in soil fauna abundance\n(log response ratio)")+
   scale_color_manual(values = c("#02475f","#c3386b","#e0b500"))+
   scale_fill_manual(values = c("#02475f","#c3386b","#e0b500"))+
+  scale_size_continuous(range = c(1,10),transform = "sqrt")+
   theme(legend.position = "none")+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
           panel.background = element_blank(), axis.line = element_line(colour = "black"))+
