@@ -45,7 +45,7 @@ site_map<-ggplot(world_map, aes(x = long, y = lat, group = group)) +
         panel.grid.minor = element_blank(),
         legend.position = "right",
         legend.margin=margin(t=-30),
-        text = element_text(size = 10),
+        text = element_text(size = 9),
         plot.margin = margin(0, 0, 0, -1,unit="cm"))+
   scale_y_continuous(expand = expansion(0,5))+
   scale_x_continuous(expand = expansion(0,0))+
@@ -55,8 +55,6 @@ site_map<-ggplot(world_map, aes(x = long, y = lat, group = group)) +
   guides(fill = guide_legend(override.aes = list(size = 4)))
 
 site_map
-
-ggsave("figures/for_paper/site_map.png",site_map,width =20,height = 10,dpi = 300,units = "cm")
 
 ###########################################
 #1.2 - biome plot##########################
@@ -139,4 +137,4 @@ map_biome<-plot_grid(site_map,NULL,biome_combined,
           nrow=3)
 
 #save the figure
-save_plot("figures/for_paper/map_biomes.png",map_biome,base_height = 15,base_width = 18,dpi=300,units="cm")
+save_plot("figures/Figure_5.pdf",map_biome,base_height = 15,base_width = 18,dpi=300,units="cm")

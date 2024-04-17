@@ -192,4 +192,4 @@ cowplot_row_2<-plot_grid(exo_plot,precip_size_plot,arid_plot,ncol=3,labels =c("(
 
 cowplot_combined<-plot_grid(cowplot_row_1,cowplot_row_2,ncol=1)
 cowplot_combined
-save_plot("figures/for_paper/conceptual_diagram/conceptual_figure_multi.png",cowplot_combined,base_height = 10,base_width = 15,units="cm")  
+save_plot("figures/figure_1.png",cowplot_combined,base_height = 10,base_width = 15,units="cm")  

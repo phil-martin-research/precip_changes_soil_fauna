@@ -6,9 +6,6 @@ rm(list = ls())
 #load the packages
 pacman::p_load(raster,tidyverse,ggpubr,geodata,ggbeeswarm,nlme,lme4,bernr,cowplot,scales,ggtext,lemon)
 
-
-pacman::p_cite(geodata)
-
 #import site data
 site_data<-read.csv("data/fauna_spatial_data.csv")
 
@@ -113,23 +110,6 @@ for (i in 1:length(scenario_files)){
 site_climate_models$climate_model_label<-fct_rev(as.factor(site_climate_models$climate_model))
 site_climate_models$disturbance_label<-fct_rev(as.factor(site_climate_models$disturbance_type2))
 
-#plot raw data
-ggplot(site_climate_models,aes(x=(exp(precip_exp_proj50)-1)*100,y=climate_model_label,colour=climate_model_label,fill=climate_model_label))+
-  geom_vline(xintercept = 0,lty=2)+
-  geom_violin(position = position_dodge(width = 0.9),alpha=0.3)+
-  geom_beeswarm(dodge.width=0.9,alpha=0.5)+
-  theme_cowplot()+
-  scale_fill_viridis_d("Climate\nmodel")+
-  scale_colour_viridis_d("Climate\nmodel")+
-  facet_rep_wrap(~disturbance_label,repeat.tick.labels = TRUE,scales = "free")+
-  theme(legend.position = "none",
-        axis.text = element_text(size=8))+
-  labs(x="Difference between study and\nprojected precipitation (%)",
-       y="Climate model")
-
-
-bias_preds_summary$climate_model_label<-fct_rev(as.factor(bias_preds_summary$climate_model))
-bias_preds_summary$disturbance_label<-fct_rev(as.factor(bias_preds_summary$disturbance_type2))
 
 #error plot of this
 precip_bias_plot<-ggplot(bias_preds_summary,aes(pred,climate_model_label,colour=climate_model_label))+
@@ -145,7 +125,7 @@ precip_bias_plot<-ggplot(bias_preds_summary,aes(pred,climate_model_label,colour=
       axis.text=element_text(size=6),
       legend.position = "none")
 precip_bias_plot
-ggsave("figures/for_paper/precipitation_bias__multiple_models_error_plot.png",width = 20,height=10,units = "cm",dpi = 300)
+ggsave("figures/precipitation_bias_multiple_models_error_plot.png",width = 20,height=10,units = "cm",dpi = 300)
 
 
 #summary error plot
@@ -197,7 +177,6 @@ site_bias_data%>%
   group_by(Functional_group_size)%>%
   summarise(med_area=median(plot_area,na.rm=TRUE))
 
-names(site_bias_data)
 
 plot_bias_plot<-ggplot(site_bias_data,aes(Functional_group_size,plot_area,fill=Functional_group_size,colour=Functional_group_size))+
   geom_boxplot(alpha=0.5)+
@@ -212,4 +191,4 @@ plot_bias_plot<-ggplot(site_bias_data,aes(Functional_group_size,plot_area,fill=F
 
 #combine the two plots
 bias_plots<-plot_grid(precip_bias_plot,plot_bias_plot,labels = c("(a)","(b)"))
-save_plot("figures/for_paper/bias_plots.png",bias_plots,base_height = 10,base_width = 20,units="cm",dpi=300)
+save_plot("figures/Figure_6.pdf",bias_plots,base_height = 10,base_width = 20,units="cm",dpi=300)

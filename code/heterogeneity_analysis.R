@@ -218,7 +218,7 @@ ggplot(aes(x=perc_annual_dist,y=pred,colour=Functional_group_size,fill=Functiona
   geom_text(data=sample_size_label,aes(x=150,y=4,label=k_label),colour="black")
 
 #save plot
-ggsave("figures/for_paper/abundance_precip_size.png",width = 20,height = 8,units = "cm",dpi = 300)
+ggsave("figures/Figure_3.pdf",width = 20,height = 8,units = "cm",dpi = 300)
 
 
 #make predictions for decline effect
@@ -256,7 +256,7 @@ new_data_decline_ab%>%
   geom_hline(yintercept = 0,lty=2,alpha=0.3)
 
 #save plot
-ggsave("figures/for_paper/abundance_decline_effect.png",width = 20,height = 8,units = "cm",dpi = 300)
+ggsave("figures/abundance_decline_effect.png",width = 20,height = 8,units = "cm",dpi = 300)
 
 #make predictions for small study effect
 new_data_study_size_ab<-data.frame(expand.grid(
@@ -293,7 +293,7 @@ new_data_study_size_ab%>%
   geom_hline(yintercept = 0,lty=2,alpha=0.3)
 
 #save plot
-ggsave("figures/for_paper/abundance_study_size_effect.png",width = 20,height = 8,units = "cm",dpi = 300)
+ggsave("figures/abundance_study_size_effect.png",width = 20,height = 8,units = "cm",dpi = 300)
 
 
 #1.2 abundance models of different groups of mesofauna
@@ -334,7 +334,7 @@ meso_abundance_model_sel_table<-meso_abundance_model_sel_df%>%
   mutate(across(where(is.numeric), round, 2))%>%
   gt()
 #export this to a word file
-meso_abundance_model_sel_table%>%gtsave("figures/for_paper/meso_abundance_selection_table.docx")
+meso_abundance_model_sel_table%>%gtsave("figures/meso_abundance_selection_table.docx")
 
 #subset to give top models
 meso_abun_model_sel_sub<-subset(meso_abun_model_sel, delta <= 2, recalc.weights=FALSE)
@@ -366,7 +366,7 @@ meso_abun_coef_full_table<-meso_abun_coef_full%>%
          Variable=str_replace(Variable,"intrcpt","Intercept"))%>%
   gt()
 
-meso_abun_coef_full_table%>%gtsave("figures/for_paper/meso_abundance_coef_table.docx")
+meso_abun_coef_full_table%>%gtsave("figures/meso_abundance_coef_table.docx")
 
 #produce a figure for the most parsimonious model
 
@@ -415,7 +415,7 @@ sample_size_label<-mesofauna_abundance%>%
   geom_text(data=sample_size_label,aes(x=150,y=4,label=k_label),colour="black")
 
 #save plot
-ggsave("figures/for_paper/collembola_acari.png",width = 20,height = 10,units = "cm",dpi = 300)
+ggsave("figures/collembola_acari.png",width = 20,height = 10,units = "cm",dpi = 300)
 
 
 
@@ -467,7 +467,7 @@ richness_model_sel_table<-rich_model_sel_df%>%
   mutate(across(where(is.numeric), round, 2))%>%
   gt()
 #export this to a word file
-richness_model_sel_table%>%gtsave("figures/for_paper/richness_selection_table.docx")
+richness_model_sel_table%>%gtsave("figures/richness_selection_table.docx")
 
 #subset to give top models
 richness_model_sel_sub<-subset(rich_model_sel, delta <= 2, recalc.weights=TRUE)
@@ -495,7 +495,7 @@ richness_coef_full_table<-richness_coef_full%>%
          Variable=str_replace(Variable,"intrcpt","Intercept"))%>%
   gt()
 
-richness_coef_full_table%>%gtsave("figures/for_paper/richness_coef_table.docx")
+richness_coef_full_table%>%gtsave("figures/richness_coef_table.docx")
 
 #save model formula
 M4_formula<-(~perc_annual_dist)
@@ -537,7 +537,7 @@ richness_figure<-ggplot(new_data_rich,aes(perc_annual_dist,y=pred))+
   theme(axis.text = element_text(size=12),
         axis.title = element_text(size=12))
 richness_figure
-ggsave("figures/for_paper/richness_precip.png",width = 12,height = 8,units = "cm",dpi = 300)
+ggsave("figures/Figure_4.pdf",width = 12,height = 8,units = "cm",dpi = 300)
 
 
 
@@ -651,6 +651,6 @@ shannon_year_figure<-ggplot(new_data_shannon_year,aes(study_year,y=pred))+
   geom_hline(yintercept = 0,lty=2,alpha=0.3)
 shannon_year_figure
 
-save_plot("figures/for_paper/shannon_year_figure.png",shannon_year_figure,base_height = 10,base_width = 15,units="cm",dpi=300)
+save_plot("figures/shannon_year_figure.png",shannon_year_figure,base_height = 10,base_width = 15,units="cm",dpi=300)
 
 
