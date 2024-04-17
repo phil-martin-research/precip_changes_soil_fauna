@@ -219,7 +219,7 @@ ggplot(aes(x=perc_annual_dist,y=pred,colour=Functional_group_size,fill=Functiona
 
 #save plot
 ggsave("figures/Figure_3.pdf",width = 20,height = 8,units = "cm",dpi = 300)
-
+ggsave("figures/graphical_abstract.png",width = 20,height = 8,units = "cm",dpi = 300)
 
 #make predictions for decline effect
 new_data_decline_ab<-data.frame(expand.grid(
